@@ -212,6 +212,10 @@ po[, TO_BPLACE:= 'Overall']
 
 po <- readRDS(file=paste0(outfile.base,'-flows_frombplace_adjusted_samplingbias','.RDS'))
 
+po[, FROM_BPLACE:= factor(FROM_BPLACE,
+                          levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+
 pal <- pal_npg("nrc")(4)[c(1,3,4)]
 
 g1 <- ggplot(subset(po,TO_BPLACE=='Overall')) + geom_bar(aes(x=TO_BPLACE,y=M,fill=FROM_BPLACE),stat='identity',position=position_dodge(width=0.9)) +

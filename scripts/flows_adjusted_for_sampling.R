@@ -17,7 +17,7 @@ require(tidyr)
 if (1)
 {
   args <- list(
-    source_dir = '~/Documents/GitHub/source.attr.with.infection.time.fork',
+    source_dir = '~/Documents/GitHub/transmission.flows.by.birthplace',
     #indir = '~/Box\ Sync/Roadmap/source_attribution',
     indir = '~/Box\ Sync/Roadmap',
     analysis = 'analysis_220713',
@@ -30,7 +30,9 @@ if (1)
     reps = 1,
     rep = 1,
     simulate_data = T,
-    job_tag = 'agegps_sensanalysis_210216_MSM-2010_2022'
+    job_tag = 'agegps_sensanalysis_210216_MSM-2010_2022',
+    undiagnosed = '/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon/Roadmap/sources/ethnicity_analysis/undiagnosed/undiagnosed_211102-cohort_2010_2015',
+    job_tag_undiag = 'cohort_2010_2015'
   )
 }
 
@@ -46,7 +48,7 @@ if(length(args_line) > 0)
   stopifnot(args_line[[11]]=='-scenario')
   stopifnot(args_line[[13]]=='-rep')
   stopifnot(args_line[[15]]=='-weights')
-  
+
   args <- list()
   args[['source_dir']] <- args_line[[2]]
   args[['stanModelFile']] <- args_line[[4]]
@@ -65,6 +67,9 @@ infile.seq <-	file.path(args$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331
 infile.bas <- file.path(args$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
 infile.meta <- file.path(args$indir, args$analysis, 'misc', '220713_sequence_labels.rda')
 
+outdir_undiag <- args$undiagnosed
+job_tag_undiag <- args$job_tag_undiag
+
 ## read stanin
 cat('\nReading Stan input data...')
 infile.stanin <- list.files(args$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
@@ -74,6 +79,7 @@ tmp <- load(file.path(args$outdir, infile.stanin))
 stopifnot(c('args','stan_data')%in%tmp)
 args$analysis = 'analysis_220713'
 args$indir = '~/Box\ Sync/Roadmap'
+args$undiagnosed = '/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon/Roadmap/sources/ethnicity_analysis/undiagnosed/undiagnosed_211102-cohort_2010_2015'
 
 tmp <- paste0(outfile.base,'-fitted_stan_model.rds')
 cat("\n Read fitted dat ", tmp , "\n")
@@ -152,7 +158,107 @@ sp <- tmp[, list(N=length(TO_SEQUENCE_ID),
                   N_seq = length(TO_SEQUENCE_ID[SEQ==T]),
                   pct=length(TO_SEQUENCE_ID)/nrow(tmp)),
            by='LOC_BIRTH_POS']
-sp[, psi:= N_seq/N]
+
+### merge in pct undiagnosed ----
+ds <- readRDS(file=file.path(args$undiagnosed,paste0('p_undiagnosed_average_cohort_2010_2015_MSM.RDS')))
+sp <- merge(sp,ds,by.x='LOC_BIRTH_POS',by.y='migrant_group')
+
+### calculate total infected ----
+sp[, N_inf:= N/(1-p0.5)]
+
+### calculate sampling prob among incident cases ----
+sp[, psi:= N_seq/N_inf]
+sp[, N_inf_CL:=  N/(1-p0.025)]
+sp[, N_inf_UL:=  N/(1-p0.975)]
+sp[, psi_CL:=  N_seq/N_inf_CL]
+sp[, psi_CU:=  N_seq/N_inf_UL]
+saveRDS(sp,file=paste0(outfile.base,'-sampling_prob_cases','.RDS'))
+
+# calculate number diagnosed from each birth region and number with a sequence
+
+samples <- readRDS(file=file.path(outdir_undiag, paste0('samples_',job_tag_undiag,"_",args$trsm,'.rds')))
+dmap <- readRDS(file=file.path(outdir, paste0("mapping_georeg_id.RDS")))
+
+shape_msm <- data.table(reshape::melt(samples$wb_shape_grp))
+setnames(shape_msm,c('iterations','Var.2'),c('iter','mg'))
+shape_msm[, trsm:='MSM']
+shape_msm[, par:='shape']
+
+scale_msm <- data.table(reshape::melt(samples$wb_scale_grp))
+setnames(scale_msm,c('iterations','Var.2'),c('iter','mg'))
+scale_msm[, trsm:='MSM']
+scale_msm[, par:='scale']
+
+ds <- rbind(shape_msm,scale_msm)
+ds <- dcast(ds,trsm+mg+iter~par,value.var="value")
+
+dat <- tidyr::crossing(year=seq(1980,2021,1),month=seq(1,12,1))
+#dat <- tidyr::crossing(year=seq(2010,2021,1))
+ds <- merge(dat,ds,all=T)
+ds <- data.table(ds)
+ds[, time:=(2022+(1/12))-(year + (month/12))] # +(1/12) to add 1 month so we count until end Dec 2018/start of Jan 2019. but I think it makes sense someone infected Dec 2018 has 0 prob of being diagnosed by end of 2018 due to time taken to detect virus
+ds[, p:=1 - pweibull(time,shape=shape,scale=scale)]
+
+mean_y <- ds[, list(p=quantile(p,prob=c(0.025,0.5,0.975)),
+                    qlabel=c('p0.025','p0.5','p0.975')),
+             by=c('trsm','mg','year')] # summarise quantiles for each year
+mean_y <- merge(mean_y,dmap,by.x='mg',by.y='mgid')
+mean_y <- dcast(mean_y,trsm+mwmb+year~qlabel,value.var=c("p"))
+saveRDS(mean_y,file=paste0(outfile.base,'-mean_undiagnosed_byyear_sources','.RDS'))
+
+### calculate sp by year for cases ----
+dat <- tidyr::crossing(year=seq(2010,2021,1),month=seq(1,12,1))
+#dat <- tidyr::crossing(year=seq(2010,2021,1))
+ds <- merge(dat,ds,all=T)
+ds <- data.table(ds)
+ds[, time:=(2022+(1/12))-(year + (month/12))] # +(1/12) to add 1 month so we count until end Dec 2018/start of Jan 2019. but I think it makes sense someone infected Dec 2018 has 0 prob of being diagnosed by end of 2018 due to time taken to detect virus
+ds[, p:=1 - pweibull(time,shape=shape,scale=scale)]
+
+mean_y <- ds[, list(p=quantile(p,prob=c(0.025,0.5,0.975)),
+                    qlabel=c('p0.025','p0.5','p0.975')),
+             by=c('trsm','mg','year')] # summarise quantiles for each year
+mean_y <- merge(mean_y,dmap,by.x='mg',by.y='mgid')
+mean_y <- dcast(mean_y,trsm+mwmb+year~qlabel,value.var=c("p"))
+
+
+spy <- dinf[YEAR_OF_INF_EST>=2010, list(N=length(TO_SEQUENCE_ID),
+                                        N_seq = length(TO_SEQUENCE_ID[SEQ==T])),
+            by=c('LOC_BIRTH_POS','YEAR_OF_INF_EST')]
+# add rows for years with missing values for each birth region? would need to make the N=0.0001 or similar..
+spy <- merge(spy,mean_y,by.x=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'),by.y=c('mwmb','year'),all.x=T)
+spy[, N_inf:= N/(1-p0.5)]
+spy[, N_inf_CL:=  N/(1-p0.025)]
+spy[, N_inf_UL:=  N/(1-p0.975)]
+
+#spy <- spy[, list(N=sum(N),N_inf=sum(N_inf),N_seq=sum(N_seq)),by=c('LOC_BIRTH_POS')]
+# calculate sampling prob among incident cases
+spy[, N_seq:= as.numeric(N_seq)]
+spy[N_seq==0, N_seq:= 0.1]
+spy[, psi:= N_seq/N_inf]
+spy[, psi_CL:=  N_seq/N_inf_CL]
+spy[, psi_CU:=  N_seq/N_inf_UL]
+
+spy[, LOC_BIRTH_POS:= factor(LOC_BIRTH_POS,
+                            levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                                     'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+saveRDS(spy,file=paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS'))
+
+### calculate sp by year for sources ----
+#mean_y <- merge(mean_y,dmap,by.x='mg',by.y='mgid')
+mean_y <- readRDS(file=paste0(outfile.base,'-mean_undiagnosed_byyear_sources','.RDS'))
+sp_s <- dinf[!is.na(YEAR_OF_INF_EST), list(N=length(TO_SEQUENCE_ID),
+                    N_seq = length(TO_SEQUENCE_ID[SEQ==T])),
+             by=c('LOC_BIRTH_POS','YEAR_OF_INF_EST')]
+# add rows for years with missing values for each birth region? would need to make the N=0.0001 or similar..
+sp_s <- merge(sp_s,mean_y,by.x=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'),by.y=c('mwmb','year'),all.x=T)
+sp_s[, N_inf:= N/(1-p0.5)]
+sp_s[, psi:= N_seq/N_inf]
+saveRDS(sp_s,file=paste0(outfile.base,'-sampling_prob_byyear_sources','.RDS')) # too many regions with missing years (since 1980) to do by year. Aggregate into 5/10yr bands?
+sp_s <- sp_s[, list(N=sum(N),N_inf=sum(N_inf),N_seq=sum(N_seq)),by=c('LOC_BIRTH_POS')]
+# calculate sampling prob among incident cases
+sp_s[, psi:= N_seq/N_inf]
+saveRDS(sp_s,file=paste0(outfile.base,'-sampling_prob_sources','.RDS'))
+
 
 # calculate using birthplaces among incident cases in formulated pairs
 #tmp2 <- unique(subset(do,select=c('TO_SEQUENCE_ID','TO_BPLACE')))
@@ -164,21 +270,24 @@ sp[, psi:= N_seq/N]
 #sp[, psi:= N_samp/N]
 
 
-## plot adjusted flows by birthplace ----
+## plot case-adjusted flows by birthplace ----
 cat(" \n --------------------------------  plot adjusted flows by birthplace -------------------------------- \n")
+spy <- readRDS(file=paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS'))
 
 po <- model_fit$draws(inc_warmup = FALSE,
                       format = 'draws_df',
-                      variables = 'tpair_prob_w'
+                      variables = 'tpair_prob_w' #tpair_prob_w
 )
-po <- as.data.table(po)
+po <- data.table(po)
 setnames(po, colnames(po), gsub('^\\.','',colnames(po)))
 po <- melt(po, id.vars = c('chain','iteration','draw'))
+po <- data.table(po)
 po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
-tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','TRANS_STAGE'))
+tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','YEAR_OF_INF_EST'))
 #setnames(tmp,'FROM_BPLACE','BPLACE')
 po <- merge(po, tmp, by = 'PAIR_ID')
-po <- merge(po, subset(sp,select=c('LOC_BIRTH_POS','psi')),by.x='TO_BPLACE',by.y='LOC_BIRTH_POS')
+po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
+            by.x=c('TO_BPLACE','YEAR_OF_INF_EST'),by.y=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'))
 po <- po[, list(value = sum(value/psi)), by = c('draw','FROM_BPLACE')]
 tmp <- po[, list(total = sum(value)), by = c('draw')]
 po <- merge(po, tmp, by = 'draw')
@@ -192,14 +301,14 @@ po <- po[,
 po <- dcast.data.table(po, FROM_BPLACE~stat, value.var = 'q')
 setnames(po,'FROM_BPLACE','FROM_BPLACE')
 po[, TO_BPLACE:= 'Overall']
-saveRDS(po,file=paste0(outfile.base,'-rep_',replicate,'-adjusted_flows_tobplace','.RDS'))
+saveRDS(po,file=paste0(outfile.base,'-rep_',replicate,'-adjusted_flows_samplingofcases','.RDS'))
 
 po[, FROM_BPLACE:= factor(FROM_BPLACE,
                           levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
                                    'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
 
-g <- ggplot(subset(po,TO_BPLACE=='Overall')) + geom_bar(aes(x=FROM_BPLACE,y=M,fill=FROM_BPLACE),stat='identity',position=position_dodge(width=0.9)) +
-  geom_errorbar(aes(x=FROM_BPLACE,ymin=CL, ymax=CU,fill=FROM_BPLACE),position=position_dodge(width=0.9),width=0.5, colour="black")	+
+g <- ggplot(subset(po,TO_BPLACE!='Overall')) + geom_bar(aes(x=TO_BPLACE,y=M,fill=FROM_BPLACE),stat='identity',position=position_dodge(width=0.9)) +
+  geom_errorbar(aes(x=TO_BPLACE,ymin=CL, ymax=CU,fill=FROM_BPLACE),position=position_dodge(width=0.9), width=0.5, colour="black")	+
   scale_fill_npg() +
   labs(x='Birthplace of\nincident case',fill='Birthplace of likely\ntransmitter', y='Proportion of attributable infections\nto place of birth') +
   theme_bw(base_size=28) +
@@ -210,77 +319,98 @@ g <- ggplot(subset(po,TO_BPLACE=='Overall')) + geom_bar(aes(x=FROM_BPLACE,y=M,fi
   coord_cartesian(ylim = c(0,1)) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
 
-ggsave(file = paste0(outfile.base,'-adjusted_flows_tobplace_contributions.pdf'),
+ggsave(file = paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_contributions.pdf'),
        g, w = 11, h = 8)
-ggsave(file = paste0(outfile.base,'-adjusted_flows_tobplace_contributions.png'),
+ggsave(file = paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_contributions.png'),
        g, w = 11, h = 8)
 
 
 ## adjust for sampling bias of sources ----
+spy <- readRDS(file=paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS'))
+sp_s <- readRDS(file=paste0(outfile.base,'-sampling_prob_sources','.RDS')) # TODO: stratify estimates by 5 or 10yr intervals?
 
 po <- model_fit$draws(inc_warmup = FALSE,
                       format = 'draws_df',
-                      variables = 'tpair_prob_w' # should we be using tpair_prob now? unadjusted probs?
+                      variables = 'tpair_prob' # should we be using tpair_prob now? unadjusted probs?
 )
 po <- as.data.table(po)
 setnames(po, colnames(po), gsub('^\\.','',colnames(po)))
 po <- melt(po, id.vars = c('chain','iteration','draw'))
-po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
+po <- data.table(po)
+po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
 tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','FROM_SEQUENCE_ID','TO_SEQUENCE_ID'))
 po <- merge(po, tmp, by = 'PAIR_ID')
 setnames(po,'value','rho')
 
 # expected number of missing trsm pairs m_j(z) from region z to case j
 # predict counts from negbin using r = number of obs individuals per recipient, p = sampling prob
-tmp2 <- subset(do,select=c('TO_SEQUENCE_ID','FROM_BPLACE'))
-tmp2 <- tmp2[, list(N=length(FROM_BPLACE)),
+tmp2 <- subset(do,select=c('TO_SEQUENCE_ID','FROM_SEQUENCE_ID','FROM_BPLACE'))
+tmp2 <- tmp2[, list(N=length(FROM_SEQUENCE_ID)),
              by=c('TO_SEQUENCE_ID','FROM_BPLACE')]
 
-dmiss <- merge(subset(sp,select=c('LOC_BIRTH_POS','psi')),tmp2,by.x='LOC_BIRTH_POS',by.y='FROM_BPLACE')
+dmiss <- merge(subset(sp_s,select=c('LOC_BIRTH_POS','psi')),tmp2,by.x='LOC_BIRTH_POS',by.y='FROM_BPLACE')
 
 # calculate median w(z) and multiply by the number of missing sources in cat z for recipient j (per MC sample)
 dw <- po[, list(rho_med_src = median(rho)), by = c('draw','FROM_BPLACE')]
-dw <- merge(dmiss,dw,by.x='LOC_BIRTH_POS',by.y='FROM_BPLACE',allow.cartesian = T) # adds rows per MC sample and per recipient missing obs
+dw <- merge(dmiss,dw,by.x='LOC_BIRTH_POS',by.y='FROM_BPLACE',all.x=T,allow.cartesian = T) # adds rows per MC sample and per recipient missing obs for ALL world regions
 # simulate missing sources per MC sample
-dw[, N_miss:= rnbinom(N,1,psi)]
-setnames(dw,'LOC_BIRTH_POS','FROM_BPLACE')
+#dw[, N_miss:= rnbinom(N,1,psi)]
+#dw <- dw[, list(LOC_BIRTH_POS=LOC_BIRTH_POS, psi=psi,
+#                 TO_SEQUENCE_ID= TO_SEQUENCE_ID,
+#                 N=N,
+#                 draw=draw,
+#                 rho_med_src=rho_med_src,
+#                 N_miss= rnbinom(n=nrow(dw),size=N,prob=psi))]
+#setnames(dw,'LOC_BIRTH_POS','FROM_BPLACE')
+# load imputed missing sources from poisson thinned model:
+outdir <- "/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon/Roadmap/sources/ethnicity_analysis/sampling_adjustments/case-specific-lambda"
+dl <- readRDS(file=file.path(outdir, paste0('imputedsources_',job_tag,'.rds')))
+setnames(dl,c('iter'),c('draw'))
+dw <- merge(dw,dl,by=c('draw','TO_SEQUENCE_ID','LOC_BIRTH_POS'))
+# sum the imputed rhos for the missing obs for each birthplace and case ID
+mwz <- dw[, list(mwz = sum(N_miss * rho_med_src)),by=c('draw','TO_SEQUENCE_ID')]
 
-po <- merge(po, dw, by=c('draw','TO_SEQUENCE_ID','FROM_BPLACE'))
+#po <- merge(po, dw, by=c('draw','TO_SEQUENCE_ID','FROM_BPLACE')) # bug, dont merge sum of median missing to each pair
 
-# calculate rho_kj = sum over observed rhos for incident case j
+# calculate rho_kj = sum over observed rhos for incident case j (for all src cats/doesn't matter where from)
 # sum over source cat z for unobserved sources for incident case j
-tmp <- po[, list(rho_src = sum(rho),
-                 mwz = sum(N_miss * rho_med_src)),by=c('draw','TO_SEQUENCE_ID')]
+tmp <- po[, list(rho_src = sum(rho)
+                 #mwz = sum(N_miss * rho_med_src)
+                 ),by=c('draw','TO_SEQUENCE_ID')]
 po <- merge(po,tmp, by=c('draw','TO_SEQUENCE_ID'))
+po <- merge(po,mwz, by=c('draw','TO_SEQUENCE_ID'))
 po[rho_src + mwz==0, flag_zeroes:= 1]
+dw <- merge(dw,tmp, by=c('draw','TO_SEQUENCE_ID'))
+dw <- merge(dw,mwz, by=c('draw','TO_SEQUENCE_ID'))
 
 # calculate new p_ij for obs pairs
 # NB some values were NaN because rho, N_miss, rho_src and mwz are all 0. Set these to 0? or something small? 0.001?
 dp_obs <- po[, list(p = rho/(rho_src + mwz)), by=c('draw','FROM_SEQUENCE_ID','TO_SEQUENCE_ID','FROM_BPLACE')]
 dp_obs[is.nan(p), p:=0] # <<< TODO: check this
 
-# calculate new p_ij for missing pairs
-dp_miss <- po[, list(p = rho_med_src / (rho_src + mwz),
+# calculate new p_ij for missing pairs (only for cases where we predict >0 missing sources)
+dp_miss <- dw[N_miss>0, list(p = rho_med_src / (rho_src + mwz),
                      N_miss = N_miss), by=c('draw','FROM_BPLACE','TO_SEQUENCE_ID')]
-dp_miss[is.nan(p), p:=0] # <<< TODO: check this
-dp_miss[is.infinite(p), p:=0] # <<< some are inf because denominator is 0 but numerator is non-zero (bc N_miss=0)
+#dp_miss[is.nan(p), p:=0] # <<< TODO: check this >>> UPDATE: no longer needed, no NaNs/infs
+#dp_miss[is.infinite(p), p:=0] # <<< some are inf because denominator is 0 but numerator is non-zero (bc N_miss=0)
 
 # calculate p_j(x) = sum p_ij for obs pairs over obs sources i from bplace z + sum p_j for missing pairs over # missing sources from bplace z
 tmp <- dp_obs[, list(p_ijz = sum(p)),by=c('draw','TO_SEQUENCE_ID','FROM_BPLACE')]
 tmp2 <- dp_miss[, list(p_jz = sum(p*N_miss)),by=c('draw','TO_SEQUENCE_ID','FROM_BPLACE')]
 
 tmp <- merge(tmp,tmp2,by=c('draw','FROM_BPLACE','TO_SEQUENCE_ID'))
-dp <- tmp[, list(pjx = p_ijz + p_jz), by=c('draw','FROM_BPLACE','TO_SEQUENCE_ID')]
+dp <- tmp[, list(pjx = p_ijz + p_jz), by=c('draw','FROM_BPLACE','TO_SEQUENCE_ID')] # sum to 1
 
 # adjust for sampling of incident cases
-dp <- merge(dp,unique(subset(do,select=c('TO_SEQUENCE_ID','TO_BPLACE'))),by='TO_SEQUENCE_ID')
-dp <- merge(dp, subset(sp,select=c('LOC_BIRTH_POS','psi')),by.x='TO_BPLACE',by.y='LOC_BIRTH_POS')
+dp <- merge(dp,unique(subset(do,select=c('TO_SEQUENCE_ID','TO_BPLACE','YEAR_OF_INF_EST'))),by='TO_SEQUENCE_ID')
+dp <- merge(dp, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
+            by.x=c('TO_BPLACE','YEAR_OF_INF_EST'),by.y=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'))
 # calculate flows from source cat Z
-po <- dp[, list(value = sum(pjx/psi)), by = c('draw','FROM_BPLACE')]
+po <- dp[, list(value = sum(pjx/psi)), by = c('draw','FROM_BPLACE')] # adjust recipients for sampling too
 tmp <- po[, list(total = sum(value)), by = c('draw')]
 #tmp <- dp[, list(total = sum(pjx)), by = c('draw')]
 po <- merge(po, tmp, by = 'draw')
-po[, paf := value/total]
+po[, paf := value/total] # NOTE: we can actually just divide the sum of the pjx/psi by the number of unique recipients
 saveRDS(po,file=paste0(outfile.base,'-flows_frombplace_adjusted_samplingbias_mcsamples','.RDS'))
 
 po <- po[,
@@ -345,7 +475,7 @@ g2 <- ggplot(po) + geom_bar(aes(x=TO_BPLACE,y=M,fill=FROM_BPLACE),stat='identity
   scale_fill_npg() +
   labs(fill='Birthplace of\nlikely transmitter', y='Proportion of transmission flows',x='Birthplace of\nrecipient') +
   theme_bw() +
-  theme(legend.pos='bottom') + #, 
+  theme(legend.pos='bottom') + #,
   #axis.text.x = element_text(angle=0, vjust = 0.5)) + #,
   coord_cartesian(ylim = c(0,1)) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
@@ -366,4 +496,81 @@ ggsave(file = paste0(outfile.base,'-flows_frombplace_adjusted_samplingbias_panel
        g, w = 9, h = 6)
 ggsave(file = paste0(outfile.base,'-flows_frombplace_adjusted_samplingbias_panel.png'),
        g, w = 9, h = 6)
+
+## plot case-adjusted flows by birthplace of case and source ----
+cat(" \n --------------------------------  plot adjusted flows by birthplace -------------------------------- \n")
+## % flows from each region PER region of birth of cases (i.e. sum to one per regino of birth of recipient)
+
+spy <- readRDS(file=paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS'))
+
+po <- model_fit$draws(inc_warmup = FALSE,
+                      format = 'draws_df',
+                      variables = 'tpair_prob_w' #tpair_prob_w
+)
+po <- data.table(po)
+setnames(po, colnames(po), gsub('^\\.','',colnames(po)))
+po <- melt(po, id.vars = c('chain','iteration','draw'))
+po <- data.table(po)
+po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
+tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','YEAR_OF_INF_EST'))
+#setnames(tmp,'FROM_BPLACE','BPLACE')
+po <- merge(po, tmp, by = 'PAIR_ID')
+po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
+            by.x=c('TO_BPLACE','YEAR_OF_INF_EST'),by.y=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'))
+po <- po[, list(value = sum(value/psi)), by = c('draw','FROM_BPLACE','TO_BPLACE')]
+tmp <- po[, list(total = sum(value)), by = c('draw','TO_BPLACE')]
+po <- merge(po, tmp, by = c('draw','TO_BPLACE'))
+po[, paf := value/total]
+po <- po[,
+         list( q = quantile(paf, probs = c(0.5, 0.025, 0.25, 0.75, 0.975) ),
+               stat = c('M','CL','IL', 'IU', 'CU')
+         ),
+         by = c('FROM_BPLACE','TO_BPLACE')
+]
+po <- dcast.data.table(po, FROM_BPLACE + TO_BPLACE ~stat, value.var = 'q')
+po[, FROM_BPLACE:= factor(FROM_BPLACE,
+                          levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+po[, TO_BPLACE:= factor(TO_BPLACE,
+                        levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                                 'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+saveRDS(po,file=paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_bplacecase_bplacesrc','.RDS'))
+
+
+## plot case-adjusted flows by birthplace of case and source ----
+cat(" \n --------------------------------  plot adjusted flows by birthplace -------------------------------- \n")
+spy <- readRDS(file=paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS'))
+
+po <- model_fit$draws(inc_warmup = FALSE,
+                      format = 'draws_df',
+                      variables = 'tpair_prob_w' #tpair_prob_w
+)
+po <- data.table(po)
+setnames(po, colnames(po), gsub('^\\.','',colnames(po)))
+po <- melt(po, id.vars = c('chain','iteration','draw'))
+po <- data.table(po)
+po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
+tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','YEAR_OF_INF_EST'))
+#setnames(tmp,'FROM_BPLACE','BPLACE')
+po <- merge(po, tmp, by = 'PAIR_ID')
+po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
+            by.x=c('TO_BPLACE','YEAR_OF_INF_EST'),by.y=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'))
+po <- po[, list(value = sum(value/psi)), by = c('draw','FROM_BPLACE','TO_BPLACE')]
+tmp <- po[, list(total = sum(value)), by = c('draw')]
+po <- merge(po, tmp, by = 'draw')
+po[, paf := value/total]
+po <- po[,
+         list( q = quantile(paf, probs = c(0.5, 0.025, 0.25, 0.75, 0.975) ),
+               stat = c('M','CL','IL', 'IU', 'CU')
+         ),
+         by = c('FROM_BPLACE','TO_BPLACE')
+]
+po <- dcast.data.table(po, FROM_BPLACE + TO_BPLACE ~stat, value.var = 'q')
+po[, FROM_BPLACE:= factor(FROM_BPLACE,
+                          levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+po[, TO_BPLACE:= factor(TO_BPLACE,
+                          levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+saveRDS(po,file=paste0(outfile.base,'-adjusted_flows_samplingofcases_bplacecase_bplacesrc','.RDS'))
 

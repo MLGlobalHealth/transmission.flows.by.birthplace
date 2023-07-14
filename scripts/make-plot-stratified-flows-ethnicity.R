@@ -44,7 +44,7 @@ if(length(args_line) > 0)
   stopifnot(args_line[[11]]=='-scenario')
   stopifnot(args_line[[13]]=='-rep')
   stopifnot(args_line[[15]]=='-weights')
-  
+
   args <- list()
   args[['source_dir']] <- args_line[[2]]
   args[['stanModelFile']] <- args_line[[4]]
@@ -148,7 +148,7 @@ g <- ggplot(subset(po,TO_BPLACE!='Overall')) + geom_bar(aes(x=TO_BPLACE,y=M,fill
   scale_fill_npg() +
   labs(fill='Birthplace of\nlikely transmitter', y='Proportion of transmission flows',x='Birthplace of\nrecipient') +
   theme_bw() +
-  theme(legend.pos='bottom') + #, 
+  theme(legend.pos='bottom') + #,
         #axis.text.x = element_text(angle=0, vjust = 0.5)) + #,
   coord_cartesian(ylim = c(0,1)) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
@@ -159,6 +159,9 @@ ggsave(file = ('/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon
 #               ncol=2,widths=c(0.35,0.65),align='hv',common.legend=T,legend = "none")
 #g_bplace <- annotate_figure(g,bottom = text_grob("Birthplace of recipient",size=28))
 
+# load sampling-adjusted flows
+po <- readRDS(file=paste0(outfile.base,'-stratified_flows_frombplace_adjusted_samplingbias','.RDS'))
+po <- readRDS(file=paste0(outfile.base,'-adjusted_flows_samplingofcases_bplacecase_bplacesrc','.RDS'))
 
 # plot sankey ----
 tmp <- do[, list(N=length(unique(TO_SEQUENCE_ID))),by=c('TO_BPLACE')]
@@ -208,7 +211,8 @@ onRender(
 )
 
 require(htmlwidgets)
-saveWidget(p, file="/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon/Roadmap/sources/ethnicity_analysis/paper2_figures/flows_bplace_sankey.html")
+#saveWidget(p, file="/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon/Roadmap/sources/ethnicity_analysis/paper2_figures/flows_bplace_sankey.html")
+saveWidget(p, file="/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon/Roadmap/sources/ethnicity_analysis/paper2_figures/flows_frombplace_tobplace_sankey.html")
 
 po[, FROM_BPLACE:= factor(FROM_BPLACE,
                           levels=c('Netherlands','W.Europe, N.America,Oceania','Suriname & Dutch Caribbean',
