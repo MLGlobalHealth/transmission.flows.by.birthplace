@@ -10,15 +10,16 @@ require(ggsci)
 source('R/functions.R')
 
 analysis <- 'analysis_220713'
-results <- 'agegps_updated_criteria_210216_MSM-2010_2022'
+results <- 'update_blace_230714_MSM-2010_2021'
+#results <- 'agegps_updated_criteria_210216_MSM-2010_2022'
 #results <- 'agegps_sensanalysis_210216_MSM-2010_2022'
 indir_data <- '/Users/alexb/Box Sync/Roadmap'
-out.dir <- file.path('~/Documents/GitHub/source.attr.with.infection.time.fork/out_Amsterdam',results)
+out.dir <- file.path('~/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam',results)
 clock_model <- '/Users/alexb/Box Sync/Roadmap/source_attribution/molecular_clock/hierarchical'
 # Load data [1. data on infection dates, 2. meta data information, 3. age data of recipients]
 
 args <- list(
-  source_dir ='/Users/alexb/Documents/GitHub/source.attr.with.infection.time.public',
+  source_dir ='/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace',
   #indir = '/Users/alexb/Documents/Roadmap/refactor_code',
   indir = '/Users/alexb/Box Sync/Roadmap',
   mig_groups=T,
@@ -224,8 +225,9 @@ dat2[, RNA_D:= max(dat$RNA_D)] # add date of last obs to impute until
 dat <- merge(dat,dat2,by=c('PATIENT','RNA_D','RNA_V'),all=T)
 
 # just keep patients who are a probable transmitter
-
 dat <- subset(dat,PATIENT %in% pairs$FROM_SEQUENCE_ID)
+
+# get infection date of recipient to predict VL of transmitter for
 dat <- merge(dat,subset(pairs,select=c('FROM_SEQUENCE_ID','TO_EST_INFECTION_DATE')),by.x=c('PATIENT','RNA_D'),by.y=c('FROM_SEQUENCE_ID','TO_EST_INFECTION_DATE'),all=T)
 
 # remove patients with less than 4 measurements
