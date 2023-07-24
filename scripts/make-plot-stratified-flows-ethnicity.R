@@ -146,7 +146,7 @@ write.csv(tmp,file=paste0(outfile.base,'-flows_bplace_stratify_table','.csv'))
 g <- ggplot(subset(po,TO_BPLACE!='Overall')) + geom_bar(aes(x=TO_BPLACE,y=M,fill=FROM_BPLACE),stat='identity',position=position_dodge(width=0.9)) +
   geom_errorbar(aes(x=TO_BPLACE,ymin=CL, ymax=CU,fill=FROM_BPLACE),position=position_dodge(width=0.9), width=0.5, colour="black")	+
   scale_fill_npg() +
-  labs(fill='Birthplace of\nlikely transmitter', y='Proportion of transmission flows',x='Birthplace of\nrecipient') +
+  labs(fill='Birthplace of\nlikely transmitter', y='Contribution to transmissions',x='Birthplace of\nrecipient') +
   theme_bw() +
   theme(legend.pos='bottom') + #,
         #axis.text.x = element_text(angle=0, vjust = 0.5)) + #,

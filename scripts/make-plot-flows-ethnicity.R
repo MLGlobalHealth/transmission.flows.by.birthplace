@@ -160,8 +160,12 @@ tmp <- do.call(`rbind`,tmp)
 tmp2 <- do.call(`rbind`,tmp2)
 tmp <- merge(tmp,tmp2,by=c('YEAR'),all=T)
 tmp[, prev:= N/N_total]
+
+## TODO! adjust for undiagnosed
+
+
 # generate weights of total PLHIV across the 11 years
-wts <- tmp[LOC_BIRTH_POS=='Netherlands', list(YEAR=YEAR, w=N_total/sum(N_total))]
+wts <- tmp[LOC_BIRTH_POS=='Netherlands', list(YEAR=YEAR, w=N_total/sum(N_total))] # only do for NL because N_total same for all birth regions
 tmp <- merge(tmp,wts,by='YEAR')
 dp <- tmp[, list(pct=sum(prev*w)),by=c('LOC_BIRTH_POS')]
 dp[, FROM_BPLACE:= factor(LOC_BIRTH_POS,
@@ -262,7 +266,7 @@ g1 <- ggplot(subset(po,TO_BPLACE=='Overall')) + geom_bar(aes(x=FROM_BPLACE,y=M,f
 
 
 ## plot relative contribution ----
-  
+
 #infile.meta <- file.path(args$indir, analysis, 'misc', '220713_sequence_labels.rda')
 #dind[, LOC_BIRTH_POS:="Other"]
 #dind[LOC_BIRTH %in% c("WEurope","NorthAm","Oceania"), LOC_BIRTH_POS:="W.Europe,\nN.America,Oceania"]
@@ -363,7 +367,7 @@ dl <- dat %>%
 names(dl$m) <-  dl$PATIENT
 new <- purrr::map(dl$m, ~ predict(.x, newdata = as.Date(c('2010-01-01','2011-01-01','2012-01-01','2013-01-01',
                                                           '2014-01-01','2015-01-01','2016-01-01','2017-01-01',
-                                                          '2018-01-01','2019-01-01','2020-01-01','2021-01-01')))) 
+                                                          '2018-01-01','2019-01-01','2020-01-01','2021-01-01'))))
 new2 <- do.call(`rbind`,new)
 rownames(new2) <- dl$PATIENT
 new2 <- data.table(reshape2::melt(new2))
