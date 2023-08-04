@@ -153,6 +153,7 @@ po[, TO_BPLACE:= factor(TO_BPLACE,
                         levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
                                  'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
 
+po[, L:= paste0(round(M*100,1),'% [',round(CL*100,1),'-',round(CU*100,1),'%]')]
 saveRDS(po,file=paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_bplacecase_bplacesrc','.RDS'))
 
 
@@ -209,6 +210,8 @@ po[, FROM_BPLACE:= factor(FROM_BPLACE,
 po[, TO_BPLACE:= factor(TO_BPLACE,
                         levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
                                  'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+
+po[, L:= paste0(round(M*100,1),'% [',round(CL*100,1),'-',round(CU*100,1),'%]')]
 
 saveRDS(po,file=paste0(outfile.base,'-adjusted_flows_atob_samplingofcases_bplacecase_bplacesrc','.RDS'))
 
