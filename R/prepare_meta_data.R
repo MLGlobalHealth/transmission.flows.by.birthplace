@@ -8,6 +8,7 @@ args <- list(
   indir = '/Users/alexb/Documents/Roadmap/refactor_code',
   data='~/Box\ Sync/Roadmap/RQ1 Estimating introductions'
 )
+source(file.path(args$source_dir, 'R','functions.R'))
 
 cat("\nRead phylogenetic subgraphs \n")
 

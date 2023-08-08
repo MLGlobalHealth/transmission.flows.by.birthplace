@@ -30,7 +30,7 @@ source(file.path(args$source_dir, 'R', 'functions_simulation_scenarios.R'))
 
 if(1) dir.create( out.dir )
 
-`%notin%` <- negate(`%in%`)
+`%notin%` <- Negate(`%in%`)
 
 infile.seq <-	file.path(args$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
 infile.meta <- file.path(args$indir, analysis, 'misc', '220713_sequence_labels.rda')

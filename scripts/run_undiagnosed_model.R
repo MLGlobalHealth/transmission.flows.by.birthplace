@@ -376,7 +376,7 @@ dm <- rbind(dm,dm_all)
 saveRDS(dm,file=file.path(outdir,paste0('median_timetodiagnosis_',job_tag,"_",args$trsm,'.RDS')))
 
 # calculate prob(undiagnosed) for a given month/year of infection
-dat <- tidyr::crossing(year=seq(2010,2021,1),month=seq(1,12,1))
+dat <- tidyr::crossing(year=seq(1980,2021,1),month=seq(1,12,1))
 if(args$weights=='ECDC'){
 	dat <- tidyr::crossing(year=seq(2010,2021,1))
 }
@@ -420,6 +420,8 @@ if(args$weights=='ECDC'){
 	# calculate mean prob for January of each year (per mc sample)
 	mean_y <- ds[, list(av_undiagnosed=mean(p)),
 							 by=c('trsm','mg','iter','year')]
+	saveRDS(mean_y,file=file.path(outdir,paste0('p_undiagnosed_byyear_MC_samples_',job_tag,"_",args$trsm,'.RDS')))
+
 	# summarise quantiles for each year
 	ds <- mean_y[, list(p=quantile(av_undiagnosed,prob=c(0.025,0.5,0.975)),
 											qlabel=c('p0.025','p0.5','p0.975')),
