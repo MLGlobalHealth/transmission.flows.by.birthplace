@@ -1,6 +1,6 @@
 
 ## preamble ----
-require(data.table)  # data mangling
+require(data.table)
 require(lubridate)
 
 if (1)

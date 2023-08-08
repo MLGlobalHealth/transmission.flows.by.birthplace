@@ -1,6 +1,6 @@
 
 ## preamble ----
-require(data.table)  # data mangling
+require(data.table)
 require(ggplot2)
 require(ggsci)
 require(scales)
@@ -41,7 +41,7 @@ if(length(args_line) > 0)
   stopifnot(args_line[[11]]=='-scenario')
   stopifnot(args_line[[13]]=='-rep')
   stopifnot(args_line[[15]]=='-weights')
-  
+
   args <- list()
   args[['source_dir']] <- args_line[[2]]
   args[['stanModelFile']] <- args_line[[4]]
@@ -194,7 +194,7 @@ dl <- dat %>%
 names(dl$m) <-  dl$PATIENT
 new <- purrr::map(dl$m, ~ predict(.x, newdata = as.Date(c('2010-01-01','2011-01-01','2012-01-01','2013-01-01',
                                                           '2014-01-01','2015-01-01','2016-01-01','2017-01-01',
-                                                          '2018-01-01','2019-01-01','2020-01-01','2021-01-01')))) 
+                                                          '2018-01-01','2019-01-01','2020-01-01','2021-01-01'))))
 new2 <- do.call(`rbind`,new)
 rownames(new2) <- dl$PATIENT
 new2 <- data.table(reshape2::melt(new2))
@@ -425,7 +425,7 @@ po[, STAGE:= factor(STAGE,
                              'Diagnosed but not virally suppressed'))]
 g <- ggplot(subset(po)) + geom_bar(aes(fill=STAGE,y=M,x=TO_BPLACE),stat='identity',position=position_dodge(width=0.9)) +
   geom_errorbar(aes(fill=STAGE,ymin=CL, ymax=CU,x=TO_BPLACE),position=position_dodge(width=0.9), width=0.5, colour="black")	+
-  scale_fill_npg('nrc') + 
+  scale_fill_npg('nrc') +
   #scale_fill_manual(name="Stage in cascade of\nlikely transmitter at\nputative infection time",values = c('Dutch-born'=pal[2],'Foreign-born'=pal[3])) +
   labs(x='Birthplace of recipient', y='Proportion of attributable\ninfections to place of birth', fill = 'Stage in cascade of likely transmitter at putative infection time') +
   theme_bw(base_size=28) +
@@ -478,7 +478,7 @@ po[, STAGE:= factor(STAGE,
                              'Diagnosed but not virally suppressed'))]
 g <- ggplot(subset(po)) + geom_bar(aes(fill=STAGE,y=M,x=FROM_BPLACE),stat='identity',position=position_dodge(width=0.9)) +
   geom_errorbar(aes(fill=STAGE,ymin=CL, ymax=CU,x=FROM_BPLACE),position=position_dodge(width=0.9), width=0.5, colour="black")	+
-  scale_fill_npg('nrc') + 
+  scale_fill_npg('nrc') +
   #scale_fill_manual(name="Stage in cascade of\nlikely transmitter at\nputative infection time",values = c('Dutch-born'=pal[2],'Foreign-born'=pal[3])) +
   labs(x='Birthplace of recipient', y='Proportion of attributable\ninfections to place of birth', fill = 'Stage in cascade of likely transmitter at putative infection time') +
   theme_bw(base_size=28) +
@@ -657,7 +657,7 @@ g2 <- ggplot(po) + geom_bar(aes(x=TO_BPLACE,y=M,fill=FROM_BPLACE),stat='identity
   scale_fill_npg() +
   labs(fill='Birthplace of\nlikely transmitter', y='Proportion of transmission flows',x='Birthplace of\nrecipient') +
   theme_bw() +
-  theme(legend.pos='bottom') + #, 
+  theme(legend.pos='bottom') + #,
   #axis.text.x = element_text(angle=0, vjust = 0.5)) + #,
   coord_cartesian(ylim = c(0,1)) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))

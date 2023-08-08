@@ -1,6 +1,6 @@
 
 ## preamble ----
-require(data.table)  # data mangling
+require(data.table)
 require(lubridate)
 
 if (1)
@@ -198,7 +198,10 @@ ds[, ST:= factor(SUBTYPE, levels=c('Unseq','B','Non-B'),labels=c('Not diagnosed 
 
 #pal <- c('grey',pal_aaas('default')(2))
 pal <- pal_npg('nrc')(4)[c(3,4)]
-pal_st <- c('gray45',pal_aaas('default')(2))
+#pal_st <- c('gray45',pal_aaas('default')(2))
+pal_st <- c('gray45',pal_aaas('default')(9)[c(6,1)])
+pal_st <- c('gray45',pal_lancet('lanonc')(9)[c(2,1)])
+pal_st <- c('gray45',pal_jama('default')(9)[c(4,3)])
 
 g_cases <- ggplot(subset(ds)) +
   geom_bar(aes(x=YEAR_OF_INF_EST,y=value,col=ST),fill='white',stat="identity",position="stack") +
@@ -250,9 +253,10 @@ tmp[, c('p','CL','CU') := Hmisc::binconf(x=value,n=n_tot,return.df=T)]
 tmp[, assumption:= factor(assumption,levels=c('prop_bplace','allb'),labels=c('Subtype predicted\nby birthplace','All unsequenced assumed\nB subtype'))]
 #tmp2[is.nan(p), p]
 # plot prop of non-Bs
-pal <- pal_npg('nrc')(4)[c(3,4)]
+#pal <- pal_npg('nrc')(4)[c(3,4)]
+pal <- pal_npg('nrc')(4)[c(1,4)]
 g_props <- ggplot(subset(tmp,SUBTYPE=='Non-B')) +
-  geom_errorbar(aes(x=YEAR_OF_INF_EST,ymin=CL, ymax=CU,fill=MB),position=position_dodge(width=0.9),width=0.3, colour="black")	+
+  geom_errorbar(aes(x=YEAR_OF_INF_EST,ymin=CL, ymax=CU,fill=MB),position=position_dodge(width=0.9),width=0.5, colour="black")	+
   geom_point(aes(x=YEAR_OF_INF_EST,y=p,colour=MB),position=position_dodge(width=0.9)) +
   facet_grid(MB~assumption) +
   scale_colour_manual(values=pal) +
@@ -290,5 +294,5 @@ g <- ggarrange(ggarrange(g_cases,g_props,labels='AUTO',font.label=list(size=14),
                ggarrange(g_srcs,NULL,nrow=1,widths=c(0.8,0.2)),nrow=2,align='v',
                labels=c('','C'),font.label=list(size=14),heights=c(0.6,0.4))
 
-ggsave(file=paste0(outfile.base,'-cases_subtypes_birthplace_sources_2yrs_panel.pdf'), g, w = 11, h = 10)
-ggsave(file=paste0(outfile.base,'-cases_subtypes_birthplace_sources__2yrs_panel.png'), g, w = 11, h = 10)
+ggsave(file=paste0(outfile.base,'-cases_subtypes_birthplace_sources_2yrs_panel_newcols.pdf'), g, w = 11, h = 10)
+ggsave(file=paste0(outfile.base,'-cases_subtypes_birthplace_sources_2yrs_panel_newcols.png'), g, w = 11, h = 10)

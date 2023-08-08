@@ -1,7 +1,7 @@
 
 
 ## preamble ----
-require(data.table)  # data mangling
+require(data.table)
 require(ggplot2)
 require(ggsci)
 require(scales)

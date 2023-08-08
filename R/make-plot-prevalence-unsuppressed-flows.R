@@ -1,6 +1,6 @@
 
 ## preamble ----
-require(data.table)  # data mangling
+require(data.table)
 require(ggplot2)
 require(ggsci)
 require(scales)
@@ -18,13 +18,13 @@ require(lubridate)
 if (1)
 {
   args <- list(
-    source_dir = '~/Documents/GitHub/source.attr.with.infection.time.fork',
+    source_dir = '~/Documents/GitHub/transmission.flows.by.birthplace',
     #indir = '~/Box\ Sync/Roadmap/source_attribution',
     indir = '~/Box\ Sync/Roadmap',
     analysis = 'analysis_220713',
-    pairs.dir = '/Users/alexb/Documents/GitHub/source.attr.with.infection.time.fork/out_Amsterdam/agegps_updated_criteria_MSM-2010_2022',
+    pairs.dir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/agegps_updated_criteria_MSM-2010_2022',
     #outdir = '/Users/alexb/Documents/GitHub/source.attr.with.infection.time.fork/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_TE16_MSM-2010_2022-1665619',
-    outdir = '/Users/alexb/Documents/GitHub/source.attr.with.infection.time.fork/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_sensanalysis_210216_MSM-618873',
+    outdir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_sensanalysis_210216_MSM-618873',
     clock_model = '/Users/alexb/Box Sync/Roadmap/source_attribution/molecular_clock/hierarchical',
     stanModelFile = 'mm_bgUnif_piGP_221027b',
     scenario = 15,
@@ -355,7 +355,7 @@ dat2[, RNA_D:= max(dat$RNA_D)] # add date of last obs to impute until
 dat <- merge(dat,dat2,by=c('PATIENT','RNA_D','RNA_V'),all=T)
 
 # just keep patients in incidence cohort
-dinf <- unique(subset(dinf,YEAR_OF_INF_EST >= 2010 & YEAR_OF_INF_EST<2022))
+#dinf <- unique(subset(dinf,YEAR_OF_INF_EST >= 2010 & YEAR_OF_INF_EST<2022)) # remove this! want unsuppressed in whole pop, not just cases
 dat <- subset(dat,PATIENT %in% dinf$TO_SEQUENCE_ID)
 
 # get infection date of recipient to predict VL of transmitter for
@@ -365,6 +365,9 @@ tmp <- data.table(expand.grid(PATIENT=unique(dat$PATIENT),
                               RNA_D=as.Date(c('2010-12-31','2011-12-31','2012-12-31','2013-12-31','2014-12-31','2015-12-31','2016-12-31',
                                               '2017-12-31','2018-12-31','2019-12-31','2020-12-31','2021-12-31'))))
 dat <- merge(dat,tmp,by=c('PATIENT','RNA_D'),all=T)
+
+# need to copy first VL measurement to 2010 so that individuals with a long time to diagnosis are estimated as unsuppressed for dates between infection and diagnosis
+
 
 # remove patients with less than 4 measurements
 tmp <- unique(subset(dat,select=c('PATIENT','RNA_D','RNA_V')))
@@ -397,30 +400,34 @@ dv <- merge(dv,tmp,by=c('PATIENT','RNA_D'),all=T)
 dv <- merge(dv,subset(dinf,select=c('TO_SEQUENCE_ID','DIAGNOSIS_DATE','DIAGNOSIS_DATE_N','EST_INF_DATE','YEAR_OF_INF_EST','LOC_BIRTH_POS')),
             by.x='PATIENT',by.y='TO_SEQUENCE_ID',all=T)
 
-tmp <- dv[, list(N_inf_2010 = length(unique(PATIENT[EST_INF_DATE<='2010-12-31' & RNA_D>='2010-01-01' & RNA_D<='2010-12-31'])),
-                 N_supp_2010 = length(unique(PATIENT[EST_INF_DATE<='2010-12-31' & RNA_D>='2010-01-01' & RNA_D<='2010-12-31' & supp==1])),
-                 N_inf_2011 = length(unique(PATIENT[EST_INF_DATE<='2011-12-31' & RNA_D>='2011-01-01' & RNA_D<='2011-12-31'])),
-                 N_supp_2011 = length(unique(PATIENT[EST_INF_DATE<='2011-12-31' & RNA_D>='2011-01-01' & RNA_D<='2011-12-31' & supp==1])),
-                 N_inf_2012 = length(unique(PATIENT[EST_INF_DATE<='2012-12-31' & RNA_D>='2012-01-01' & RNA_D<='2012-12-31'])),
-                 N_supp_2012 = length(unique(PATIENT[EST_INF_DATE<='2012-12-31' & RNA_D>='2012-01-01' & RNA_D<='2012-12-31' & supp==1])),
-                 N_inf_2013 = length(unique(PATIENT[EST_INF_DATE<='2013-12-31' & RNA_D>='2013-01-01' & RNA_D<='2013-12-31'])),
-                 N_supp_2013 = length(unique(PATIENT[EST_INF_DATE<='2013-12-31' & RNA_D>='2013-01-01' & RNA_D<='2013-12-31' & supp==1])),
-                 N_inf_2014 = length(unique(PATIENT[EST_INF_DATE<='2014-12-31' & RNA_D>='2014-01-01' & RNA_D<='2014-12-31'])),
-                 N_supp_2014 = length(unique(PATIENT[EST_INF_DATE<='2014-12-31' & RNA_D>='2014-01-01' & RNA_D<='2014-12-31' & supp==1])),
-                 N_inf_2015 = length(unique(PATIENT[EST_INF_DATE<='2015-12-31' & RNA_D>='2015-01-01' & RNA_D<='2015-12-31'])),
-                 N_supp_2015 = length(unique(PATIENT[EST_INF_DATE<='2015-12-31' & RNA_D>='2015-01-01' & RNA_D<='2015-12-31' & supp==1])),
-                 N_inf_2016 = length(unique(PATIENT[EST_INF_DATE<='2016-12-31' & RNA_D>='2016-01-01' & RNA_D<='2016-12-31'])),
-                 N_supp_2016 = length(unique(PATIENT[EST_INF_DATE<='2016-12-31' & RNA_D>='2016-01-01' & RNA_D<='2016-12-31' & supp==1])),
-                 N_inf_2017 = length(unique(PATIENT[EST_INF_DATE<='2017-12-31' & RNA_D>='2017-01-01' & RNA_D<='2017-12-31'])),
-                 N_supp_2017 = length(unique(PATIENT[EST_INF_DATE<='2017-12-31' & RNA_D>='2017-01-01' & RNA_D<='2017-12-31' & supp==1])),
-                 N_inf_2018 = length(unique(PATIENT[EST_INF_DATE<='2018-12-31' & RNA_D>='2018-01-01' & RNA_D<='2018-12-31'])),
-                 N_supp_2018 = length(unique(PATIENT[EST_INF_DATE<='2018-12-31' & RNA_D>='2018-01-01' & RNA_D<='2018-12-31' & supp==1])),
-                 N_inf_2019 = length(unique(PATIENT[EST_INF_DATE<='2019-12-31' & RNA_D>='2019-01-01' & RNA_D<='2019-12-31'])),
-                 N_supp_2019 = length(unique(PATIENT[EST_INF_DATE<='2019-12-31' & RNA_D>='2019-01-01' & RNA_D<='2019-12-31' & supp==1])),
-                 N_inf_2020 = length(unique(PATIENT[EST_INF_DATE<='2020-12-31' & RNA_D>='2020-01-01' & RNA_D<='2020-12-31'])),
-                 N_supp_2020 = length(unique(PATIENT[EST_INF_DATE<='2020-12-31' & RNA_D>='2020-01-01' & RNA_D<='2020-12-31' & supp==1])),
-                 N_inf_2021 = length(unique(PATIENT[EST_INF_DATE<='2021-12-31' & RNA_D>='2021-01-01' & RNA_D<='2021-12-31'])),
-                 N_supp_2021 = length(unique(PATIENT[EST_INF_DATE<='2021-12-31' & RNA_D>='2021-01-01' & RNA_D<='2021-12-31' & supp==1]))
+# merge in migration date and death date
+dv <- merge(dv,subset(dbas,select=c('PATIENT','MIG_D','DEATH_D')),
+            by='PATIENT',all.x=T)
+
+tmp <- dv[, list(N_inf_2010 = length(unique(PATIENT[EST_INF_DATE<='2010-12-31' & RNA_D>='2010-01-01' & RNA_D<='2010-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
+                 N_supp_2010 = length(unique(PATIENT[EST_INF_DATE<='2010-12-31' & RNA_D>='2010-01-01' & RNA_D<='2010-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
+                 N_inf_2011 = length(unique(PATIENT[EST_INF_DATE<='2011-12-31' & RNA_D>='2011-01-01' & RNA_D<='2011-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
+                 N_supp_2011 = length(unique(PATIENT[EST_INF_DATE<='2011-12-31' & RNA_D>='2011-01-01' & RNA_D<='2011-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
+                 N_inf_2012 = length(unique(PATIENT[EST_INF_DATE<='2012-12-31' & RNA_D>='2012-01-01' & RNA_D<='2012-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
+                 N_supp_2012 = length(unique(PATIENT[EST_INF_DATE<='2012-12-31' & RNA_D>='2012-01-01' & RNA_D<='2012-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
+                 N_inf_2013 = length(unique(PATIENT[EST_INF_DATE<='2013-12-31' & RNA_D>='2013-01-01' & RNA_D<='2013-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
+                 N_supp_2013 = length(unique(PATIENT[EST_INF_DATE<='2013-12-31' & RNA_D>='2013-01-01' & RNA_D<='2013-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
+                 N_inf_2014 = length(unique(PATIENT[EST_INF_DATE<='2014-12-31' & RNA_D>='2014-01-01' & RNA_D<='2014-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
+                 N_supp_2014 = length(unique(PATIENT[EST_INF_DATE<='2014-12-31' & RNA_D>='2014-01-01' & RNA_D<='2014-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
+                 N_inf_2015 = length(unique(PATIENT[EST_INF_DATE<='2015-12-31' & RNA_D>='2015-01-01' & RNA_D<='2015-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
+                 N_supp_2015 = length(unique(PATIENT[EST_INF_DATE<='2015-12-31' & RNA_D>='2015-01-01' & RNA_D<='2015-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
+                 N_inf_2016 = length(unique(PATIENT[EST_INF_DATE<='2016-12-31' & RNA_D>='2016-01-01' & RNA_D<='2016-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
+                 N_supp_2016 = length(unique(PATIENT[EST_INF_DATE<='2016-12-31' & RNA_D>='2016-01-01' & RNA_D<='2016-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
+                 N_inf_2017 = length(unique(PATIENT[EST_INF_DATE<='2017-12-31' & RNA_D>='2017-01-01' & RNA_D<='2017-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
+                 N_supp_2017 = length(unique(PATIENT[EST_INF_DATE<='2017-12-31' & RNA_D>='2017-01-01' & RNA_D<='2017-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
+                 N_inf_2018 = length(unique(PATIENT[EST_INF_DATE<='2018-12-31' & RNA_D>='2018-01-01' & RNA_D<='2018-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
+                 N_supp_2018 = length(unique(PATIENT[EST_INF_DATE<='2018-12-31' & RNA_D>='2018-01-01' & RNA_D<='2018-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
+                 N_inf_2019 = length(unique(PATIENT[EST_INF_DATE<='2019-12-31' & RNA_D>='2019-01-01' & RNA_D<='2019-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
+                 N_supp_2019 = length(unique(PATIENT[EST_INF_DATE<='2019-12-31' & RNA_D>='2019-01-01' & RNA_D<='2019-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
+                 N_inf_2020 = length(unique(PATIENT[EST_INF_DATE<='2020-12-31' & RNA_D>='2020-01-01' & RNA_D<='2020-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
+                 N_supp_2020 = length(unique(PATIENT[EST_INF_DATE<='2020-12-31' & RNA_D>='2020-01-01' & RNA_D<='2020-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
+                 N_inf_2021 = length(unique(PATIENT[EST_INF_DATE<='2021-12-31' & RNA_D>='2021-01-01' & RNA_D<='2021-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
+                 N_supp_2021 = length(unique(PATIENT[EST_INF_DATE<='2021-12-31' & RNA_D>='2021-01-01' & RNA_D<='2021-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1]))
 ),by='LOC_BIRTH_POS']
 tmp2 <- melt(subset(tmp,select=c('LOC_BIRTH_POS',colnames(tmp)[grep('N_inf',colnames(tmp))])),id.vars='LOC_BIRTH_POS')
 setnames(tmp2,c('variable','value'),c('YEAR','N_inf'))
