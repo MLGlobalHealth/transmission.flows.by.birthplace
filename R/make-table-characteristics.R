@@ -101,6 +101,8 @@ dinf[,YEAR_OF_INF_EST := year(EST_INF_DATE)]
 ## load bplace data ----
 load(infile.seq)
 
+load(infile.meta)
+
 da <- merge(da,subset(dind,select=c('PATIENT','LOC_BIRTH')),by.x='PATIENT',by.y='PATIENT',all.x=T)
 
 ## merge data sets ----
@@ -123,6 +125,10 @@ da[ORIGIN=="NL", BPLACE:="Netherlands"]
 
 da[, SEQ_LABEL:= NULL]
 da <- subset(unique(da))
+
+
+## make table ----
+cat('--------- make table ----------')
 
 tmp <- list()
 tmp[['age']] <- da[, list(N_all=length(unique(na.omit(PATIENT))),
@@ -232,7 +238,7 @@ tmp <- tmp[order(BPLACE,YEAR_OF_INF_EST,SUBTYPE),]
 
 
 g <- ggplot(subset(tmp,!is.na(SUBTYPE))) +
-  geom_bar(aes(x=YEAR_OF_INF_EST,y=N_cases_seq,fill=SUBTYPE),stat="identity",position="fill") +
+  geom_bar(aes(x=YEAR_OF_INF_EST,y=N_cases_seq,fill=SUBTYPE),stat="identity",position="stack") +
   facet_wrap(BPLACE~.) +
   scale_fill_aaas() +
   labs(x='Birthplace of\nincident case',fill='Subtype', y='Number of sequenced\nincident cases (whole cohort)\namong Amsterdam MSM ') +
@@ -246,6 +252,112 @@ g <- ggplot(subset(tmp,!is.na(SUBTYPE))) +
 ggsave(file = paste0(outfile.base,'-bplace_subtype_year.pdf'), g, w = 6, h = 5)
 ggsave(file = paste0(outfile.base,'-bplace_subtype_year.png'), g, w = 6, h = 5)
 
+g <- ggplot(subset(tmp,!is.na(SUBTYPE))) +
+  geom_bar(aes(x=YEAR_OF_INF_EST,y=N_cases_seq,fill=SUBTYPE),stat="identity",position="fill") +
+  facet_wrap(BPLACE~.) +
+  scale_fill_aaas() +
+  labs(x='Birthplace of\nincident case',fill='Subtype', y='Number of sequenced\nincident cases (whole cohort)\namong Amsterdam MSM ') +
+  theme_bw() +
+  theme(legend.pos='right',
+        axis.title.x = element_blank(),
+        #axis.text.x = element_text(angle=40, vjust = 0.5)) + #,
+        axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9)) #+ #,
+#coord_cartesian(ylim = c(0,1))
+#scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
+ggsave(file = paste0(outfile.base,'-bplace_subtype_year_prop.pdf'), g, w = 6, h = 5)
+ggsave(file = paste0(outfile.base,'-bplace_subtype_year_prop.png'), g, w = 6, h = 5)
+
+
+## sequenced (by subtype) and incident cases 1980-2021 ----
+
+tmp <- da[, list(N_cases_seq=length(unique(na.omit(PATIENT[!is.na(SUBTYPE)])))),
+          by=c('BPLACE','SUBTYPE','YEAR_OF_INF_EST')]
+tmp[, BPLACE:= factor(BPLACE,levels=c('Netherlands','W.Europe,\nN.America,Oceania',
+                                      "S. America &\n Caribbean","Suriname &\nDutch Caribbean",
+                                      "MENA" ,"E. & C. Europe" ,'Other'))]
+tmp[, SUBTYPE:= factor(SUBTYPE,levels=c('B','01AE','02AG','A1','C','G','D','06_cpx','Other'),
+                       labels=c('B','01AE','02AG','A1','C','G','D','06cpx','Other'))]
+tmp <- tmp[order(BPLACE,YEAR_OF_INF_EST,SUBTYPE),]
+tmp <- subset(tmp,!is.na(SUBTYPE))
+
+# total PLHIV
+tmp2 <- da[!is.na(YEAR_OF_INF_EST), list(N_cases=length(unique(PATIENT))),
+          by=c('BPLACE','YEAR_OF_INF_EST')]
+tmp2[, BPLACE:= factor(BPLACE,levels=c('Netherlands','W.Europe,\nN.America,Oceania',
+                                      "S. America &\n Caribbean","Suriname &\nDutch Caribbean",
+                                      "MENA" ,"E. & C. Europe" ,'Other'))]
+# correct for undiagnosed
+ds <- readRDS(file=file.path(args$undiagnosed,paste0('p_undiagnosed_byyear_MC_samples_cohort_2010_2015_MSM.RDS')))
+ds <- ds[,
+         list( q = quantile(av_undiagnosed, probs = c(0.5, 0.025, 0.975) ),
+               stat = c('M','CL', 'CU')
+         ),
+         by = c('year','mg')
+]
+ds <- dcast.data.table(ds, year+mg  ~stat, value.var = 'q')
+setnames(ds,'M','av_undiagnosed')
+ds <- subset(ds,select=c('year','mg','av_undiagnosed'))
+
+dmap <- data.table(mwmb=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                          'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                   mgid=c(1,2,3,4,5,6,7))
+ds <- merge(ds,dmap,by.x='mg',by.y='mgid')
+setnames(ds,'mwmb','migrant_group')
+ds <- merge(tmp2,ds,by.x=c('BPLACE','YEAR_OF_INF_EST'),by.y=c('migrant_group','year'),all=T)
+ds[is.na(av_undiagnosed), av_undiagnosed:=0] # set pre-2010 prob(undiagnosed) to 0
+ds[is.na(N_cases), N_cases:=0] # set pre-2010 prob(undiagnosed) to 0
+## calculate total infected
+ds[, N_inf:= round(N_cases/(1-av_undiagnosed))]
+ds[, cases:= 'Estimated incident\ncases']
+
+g <- ggplot(subset(tmp)) +
+  geom_bar(data=ds,aes(x=YEAR_OF_INF_EST,y=N_inf,col=cases),fill='white',size=0.3,stat="identity") +
+  geom_bar(aes(x=YEAR_OF_INF_EST,y=N_cases_seq,fill=SUBTYPE),stat="identity",position="stack") +
+  facet_wrap(BPLACE~.) +
+  scale_fill_aaas() +
+  scale_colour_manual(values='black') +
+  labs(x='Birthplace of\nincident case',fill='Subtype', y='Number of sequenced\nincident cases (whole cohort)\namong Amsterdam MSM ',
+       col='') +
+  theme_bw() +
+  theme(legend.pos='right',
+        axis.title.x = element_blank(),
+        #axis.text.x = element_text(angle=40, vjust = 0.5)) + #,
+        axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9),
+        strip.background=element_blank()) #+ #,
+#coord_cartesian(ylim = c(0,1))
+#scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
+ggsave(file = paste0(outfile.base,'-bplace_subtype_year_incident_cases.pdf'), g, w = 6.5, h = 5)
+ggsave(file = paste0(outfile.base,'-bplace_subtype_year_incident_cases.png'), g, w = 6.5, h = 5)
+
+#tmp <- merge(ds,subset(tmp,!is.na(SUBTYPE)),by=c('BPLACE','YEAR_OF_INF_EST'))
+
+# sum the non-Bs
+nonb <- tmp[, list(N_cases_nonb=sum(N_cases_seq[!is.na(SUBTYPE) & SUBTYPE!='B'])),
+            by=c('YEAR_OF_INF_EST','BPLACE')]
+nonb <- merge(ds,nonb,by=c('BPLACE','YEAR_OF_INF_EST'),all=T)
+nonb <- subset(nonb,!is.na(YEAR_OF_INF_EST))
+nonb[is.na(N_cases_nonb), N_cases_nonb:= 0]
+nonb[, cases_b:= N_inf - N_cases_nonb]
+
+tmp <- subset(tmp,!is.na(SUBTYPE))
+tmp <- merge(tmp,nonb,by=c('BPLACE','YEAR_OF_INF_EST'),all=T)
+tmp <- subset(tmp,!is.na(SUBTYPE) & !is.na(YEAR_OF_INF_EST))
+tmp[SUBTYPE=='B', N_cases_seq:=cases_b]
+
+g <- ggplot(subset(tmp,!is.na(SUBTYPE))) +
+  geom_bar(aes(x=YEAR_OF_INF_EST,y=N_cases_seq,fill=SUBTYPE),stat="identity",position="fill") +
+  facet_wrap(BPLACE~.) +
+  scale_fill_aaas() +
+  labs(x='Birthplace of\nincident case',fill='Subtype', y='Number of sequenced\nincident cases (whole cohort)\namong Amsterdam MSM ') +
+  theme_bw() +
+  theme(legend.pos='right',
+        axis.title.x = element_blank(),
+        #axis.text.x = element_text(angle=40, vjust = 0.5)) + #,
+        axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9)) #+ #,
+#coord_cartesian(ylim = c(0,1))
+#scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
+ggsave(file = paste0(outfile.base,'-bplace_subtype_year_assume_missing_b_prop.pdf'), g, w = 6, h = 5)
+ggsave(file = paste0(outfile.base,'-bplace_subtype_year_assume_missing_b_prop.png'), g, w = 6, h = 5)
 
 ## give numbers 2010-2021 by region ----
 
@@ -316,3 +428,217 @@ tmp <- dcast(tmp,BPLACE~SUBTYPE,value.var='L')
 
 setnames(tmp2,'MG','BPLACE')
 tmp <- rbind(tmp2,subset(tmp,BPLACE!='Netherlands'))
+
+## panel plot ----
+### plot A: incident cases ----
+
+tmp <- da[, list(N_cases_seq=length(unique(na.omit(PATIENT[!is.na(SUBTYPE)])))),
+          by=c('BPLACE','SUBTYPE','YEAR_OF_INF_EST')]
+tmp[, BPLACE:= factor(BPLACE,levels=c('Netherlands','W.Europe,\nN.America,Oceania',
+                                      "S. America &\n Caribbean","Suriname &\nDutch Caribbean",
+                                      "MENA" ,"E. & C. Europe" ,'Other'))]
+tmp[, SUBTYPE:= factor(SUBTYPE,levels=c('B','01AE','02AG','A1','C','G','D','06_cpx','Other'),
+                       labels=c('B','01AE','02AG','A1','C','G','D','06cpx','Other'))]
+tmp <- tmp[order(BPLACE,YEAR_OF_INF_EST,SUBTYPE),]
+tmp <- subset(tmp,!is.na(SUBTYPE))
+# group migrants together
+tmp[, MB:= 'Foreign-born']
+tmp[BPLACE=='Netherlands', MB:= 'Dutch-born']
+# group non-Bs together
+tmp[, ST:= 'Non-B']
+tmp[SUBTYPE=='B', ST:= 'B']
+
+tmp <- tmp[, list(N_cases_seq=sum(N_cases_seq)),by=c('MB','ST','YEAR_OF_INF_EST')]
+
+
+# total PLHIV
+tmp2 <- da[!is.na(YEAR_OF_INF_EST), list(N_cases=length(unique(PATIENT))),
+           by=c('BPLACE','YEAR_OF_INF_EST')]
+tmp2[, BPLACE:= factor(BPLACE,levels=c('Netherlands','W.Europe,\nN.America,Oceania',
+                                       "S. America &\n Caribbean","Suriname &\nDutch Caribbean",
+                                       "MENA" ,"E. & C. Europe" ,'Other'))]
+# correct for undiagnosed
+ds <- readRDS(file=file.path(args$undiagnosed,paste0('p_undiagnosed_byyear_MC_samples_cohort_2010_2015_MSM.RDS')))
+ds <- ds[,
+         list( q = quantile(av_undiagnosed, probs = c(0.5, 0.025, 0.975) ),
+               stat = c('M','CL', 'CU')
+         ),
+         by = c('year','mg')
+]
+ds <- dcast.data.table(ds, year+mg  ~stat, value.var = 'q')
+setnames(ds,'M','av_undiagnosed')
+ds <- subset(ds,select=c('year','mg','av_undiagnosed'))
+
+dmap <- data.table(mwmb=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                          'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                   mgid=c(1,2,3,4,5,6,7))
+ds <- merge(ds,dmap,by.x='mg',by.y='mgid')
+setnames(ds,'mwmb','migrant_group')
+ds <- merge(tmp2,ds,by.x=c('BPLACE','YEAR_OF_INF_EST'),by.y=c('migrant_group','year'),all=T)
+ds[is.na(av_undiagnosed), av_undiagnosed:=0] # set pre-2010 prob(undiagnosed) to 0
+ds[is.na(N_cases), N_cases:=0] # set pre-2010 prob(undiagnosed) to 0
+## calculate total infected
+ds[, N_inf:= round(N_cases/(1-av_undiagnosed))]
+ds[, cases:= 'Estimated incident\ncases']
+
+# group migrants together
+ds[, MB:= 'Foreign-born']
+ds[BPLACE=='Netherlands', MB:= 'Dutch-born']
+
+ds <- ds[, list(N_inf=sum(N_inf)),by=c('MB','YEAR_OF_INF_EST','cases')]
+
+g_cases <- ggplot(subset(tmp)) +
+  geom_bar(data=ds,aes(x=YEAR_OF_INF_EST,y=N_inf,col=cases),fill='white',size=0.3,stat="identity") +
+  geom_bar(aes(x=YEAR_OF_INF_EST,y=N_cases_seq,fill=ST),stat="identity",position="stack") +
+  facet_grid(MB~.) +
+  scale_fill_aaas() +
+  scale_colour_manual(values='black') +
+  labs(x='Birthplace of\nincident case',fill='Subtype', y='Number of sequenced\nincident cases (whole cohort)\namong Amsterdam MSM ',
+       col='') +
+  theme_bw() +
+  theme(legend.pos='right',
+        axis.title.x = element_blank(),
+        axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9),
+        strip.background=element_blank())
+
+# colour by region of birth, shade subtype
+# group the two datasets together
+tmp2 <- dcast(tmp,MB+YEAR_OF_INF_EST~ST,value.var='N_cases_seq')
+ds <- merge(ds,tmp2,by=c('MB','YEAR_OF_INF_EST'),all=T)
+ds <- subset(ds,!is.na(YEAR_OF_INF_EST))
+ds[is.na(B), B:= 0]
+ds[is.na(`Non-B`), `Non-B`:= 0]
+ds[, Unseq:= N_inf - B - `Non-B`]
+set(ds,NULL,c('N_inf','cases'),NULL)
+ds <- melt(ds,id.vars=c('MB','YEAR_OF_INF_EST'),variable.name='SUBTYPE')
+ds[, SUBTYPE:= factor(SUBTYPE, levels=c('Unseq','B','Non-B'),labels=c('Unsequenced','B','Non-B'))]
+
+#pal <- c('grey',pal_aaas('default')(2))
+pal <- pal_npg('nrc')(4)[c(3,4)]
+
+g_cases <- ggplot(subset(ds)) +
+  geom_bar(aes(x=YEAR_OF_INF_EST,y=value,fill=MB,alpha=SUBTYPE),stat="identity",position="stack") +
+  facet_grid(MB~.) +
+  #scale_fill_aaas() +
+  scale_fill_manual(values=pal) +
+  scale_alpha_manual(values=c(0.4,0.6,1)) +
+  scale_colour_manual(values='black') +
+  labs(x='Birthplace of\nincident case',alpha='Subtype', fill='Birthplace',y='Number of incident cases\namong Amsterdam MSM ',
+       col='') +
+  guides(fill="none") +
+  theme_bw() +
+  theme(legend.pos='right',
+        axis.title.x = element_blank(),
+        axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9),
+        strip.background=element_blank())
+
+
+### plot B: proportion of Non-Bs ----
+# 1/ assuming all unsequenced were B
+ds[, SUBTYPE2:=SUBTYPE]
+ds[SUBTYPE=='Unsequenced', SUBTYPE2:='B']
+ds_b <- ds[, list(allb=sum(value)),by=c('MB','YEAR_OF_INF_EST','SUBTYPE2')]
+
+# 2/ assuming birthplace predicts B/Non-Bs (i.e. same proportion of B/Non-B)
+ds[, YR_GP:= cut(YEAR_OF_INF_EST, breaks=c(1980,1985,1990,1995,2000,2005,2010,2015,
+                                           2020,2025),
+                                  labels=c('1980-1984','1985-1989','1990-1994','1995-1999','2000-2004',
+                                           '2005-2009','2010-2014','2015-2019','2020-2024'),
+                 include.lowest=T,right=F)]
+tmp <- ds[SUBTYPE!='Unsequenced', list(p_nonB=sum(value[SUBTYPE=='Non-B']/sum(value))),
+          by=c('MB' ,'YR_GP')]
+ds <- merge(ds,tmp,by=c('MB' ,'YR_GP'))
+ds2 <- dcast(ds,MB+YEAR_OF_INF_EST+p_nonB~SUBTYPE,value.var=c('value'))
+ds2[, B:= round(B + (1-0.2841530)*Unsequenced,0)]
+ds2[, `Non-B`:= round(`Non-B` + 0.2841530*Unsequenced,0)]
+ds2 <- melt(ds2,id.vars=c('MB','YEAR_OF_INF_EST','p_nonB'),variable.name='SUBTYPE')
+setnames(ds2,'value','prop_bplace')
+
+setnames(ds_b,'SUBTYPE2','SUBTYPE')
+ds <- merge(ds_b,subset(ds2,select=c('MB','YEAR_OF_INF_EST','SUBTYPE','prop_bplace')),by=c('MB','YEAR_OF_INF_EST','SUBTYPE'))
+tmp <- melt(ds,id.vars=c('MB','YEAR_OF_INF_EST','SUBTYPE'),variable.name='assumption')
+#tmp2 <- tmp[, list(SUBTYPE,
+#                   p=value/sum(value)),by=c('MB','YEAR_OF_INF_EST','assumption')]
+tmp2 <- tmp[, list(n_tot=sum(value)),by=c('MB','YEAR_OF_INF_EST','assumption')]
+tmp <- merge(tmp,tmp2,by=c('MB','YEAR_OF_INF_EST','assumption'))
+tmp[, c('p','CL','CU') := Hmisc::binconf(x=value,n=n_tot,return.df=T)]
+
+tmp[, assumption:= factor(assumption,levels=c('prop_bplace','allb'),labels=c('Subtype predicted\nby birthplace','All unsequenced assumed\nB subtype'))]
+#tmp2[is.nan(p), p]
+# plot prop of non-Bs
+pal <- pal_npg('nrc')(4)[c(3,4)]
+g_props <- ggplot(subset(tmp,SUBTYPE=='Non-B')) + geom_point(aes(x=YEAR_OF_INF_EST,y=p,colour=MB),position=position_dodge(width=0.9)) +
+  geom_errorbar(aes(x=YEAR_OF_INF_EST,ymin=CL, ymax=CU,fill=MB),position=position_dodge(width=0.9),width=0.5, colour="black")	+
+  facet_grid(MB~assumption) +
+  scale_colour_manual(values=pal) +
+  labs(x='Year',fill='', y='Proportion of predicted\nnon-B cases',col='') +
+  theme_bw() +
+  theme(legend.pos='right',
+        axis.title.x = element_blank(),
+        #axis.text.x = element_text(angle=40, vjust = 0.5)) + #,
+        axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9),
+        strip.background=element_blank()) +#+ #,
+  coord_cartesian(ylim = c(0,1)) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
+
+
+### plot C: time-shifting sources ----
+po <- readRDS(file=paste0(outfile.base,'-rep_',replicate,'-adjusted_flows_mwmb_byyear_samplingofcases','.RDS'))
+
+# for 3panel plot
+g_srcs <- ggplot(subset(po,TO_BPLACE=='Overall')) +
+  geom_bar(aes(x=YEAR_OF_INF_EST,y=M,fill=FROM_MIGRANT),position=position_dodge(width=0.9),stat='identity') +
+  #geom_point(aes(x=YEAR_OF_INF_EST,y=M,colour=FROM_MIGRANT),position=position_dodge(width=0.9)) +
+  geom_errorbar(aes(x=YEAR_OF_INF_EST,ymin=CL, ymax=CU,fill=FROM_MIGRANT),position=position_dodge(width=0.9),width=0.5, colour="black")	+
+  scale_fill_manual(values=pal) +
+  labs(x='',fill='Birthplace of likely\ntransmitter', y='Proportion of attributable infections\nto Dutch-born and foreign-born MSM',col='') +
+  theme_bw() +
+  theme(legend.pos='right',
+        #axis.title.x = element_blank(),
+        #axis.text.x = element_text(angle=40, vjust = 0.5)) + #,
+        axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9)) +#+ #,
+  coord_cartesian(ylim = c(0,1)) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
+
+# geom_point and facets
+g_srcs <- ggplot(subset(po,TO_BPLACE=='Overall')) +
+  #geom_bar(aes(x=YEAR_OF_INF_EST,y=M,fill=FROM_MIGRANT),position=position_dodge(width=0.9),stat='identity') +
+  geom_point(aes(x=YEAR_OF_INF_EST,y=M,colour=FROM_MIGRANT),position=position_dodge(width=0.9)) +
+  geom_errorbar(aes(x=YEAR_OF_INF_EST,ymin=CL, ymax=CU,fill=FROM_MIGRANT),position=position_dodge(width=0.9),width=0.5, colour="black")	+
+  facet_grid(FROM_MIGRANT~.) +
+  scale_fill_manual(values=pal) +
+  scale_colour_manual(values=pal) +
+  labs(x='',fill='Birthplace of likely\ntransmitter', y='Proportion of attributable infections\nto Dutch-born and foreign-born MSM',col='') +
+  theme_bw() +
+  theme(legend.pos='none',
+        #axis.title.x = element_blank(),
+        #axis.text.x = element_text(angle=40, vjust = 0.5)) + #,
+        axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9),
+        strip.background = element_blank()) +#+ #,
+  coord_cartesian(ylim = c(0,1)) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
+
+# 2yr intervals
+g_srcs <- ggplot(subset(po,TO_BPLACE=='Overall')) +
+  #geom_bar(aes(x=YEAR_OF_INF_EST,y=M,fill=FROM_MIGRANT),position=position_dodge(width=0.9),stat='identity') +
+  geom_point(aes(x=YEAR_GP,y=M,colour=FROM_MIGRANT),position=position_dodge(width=0.9)) +
+  geom_errorbar(aes(x=YEAR_GP,ymin=CL, ymax=CU,fill=FROM_MIGRANT),position=position_dodge(width=0.9),width=0.5, colour="black")	+
+  facet_grid(FROM_MIGRANT~.) +
+  scale_fill_manual(values=pal) +
+  scale_colour_manual(values=pal) +
+  labs(x='',fill='Birthplace of likely\ntransmitter', y='Proportion of attributable infections\nto Dutch-born and foreign-born MSM',col='') +
+  theme_bw() +
+  theme(legend.pos='none',
+        #axis.title.x = element_blank(),
+        #axis.text.x = element_text(angle=40, vjust = 0.5)) + #,
+        axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9),
+        strip.background = element_blank()) +#+ #,
+  coord_cartesian(ylim = c(0,1)) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
+
+
+g <- ggarrange(g_cases,g_props+theme(legend.position='none'),g_srcs,nrow=1,align='hv',
+               labels='AUTO',font.label=list(size=14),widths=c(0.30,0.4,0.30))
+
+ggsave(file=paste0(outfile.base,'-cases_subtypes_birthplace_sources_panel_v3.pdf'), g, w = 15, h = 6)
+ggsave(file=paste0(outfile.base,'-cases_subtypes_birthplace_sources_panel_v3.png'), g, w = 15, h = 6)
