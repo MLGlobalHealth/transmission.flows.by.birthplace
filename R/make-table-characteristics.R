@@ -98,6 +98,20 @@ dinf[,EST_INF_DATE:= DIAGNOSIS_DATE_N-SER_TO_DIAG]
 dinf[,EST_INF_DATE:= format(date_decimal(EST_INF_DATE), "%Y-%m-%d")]
 dinf[,YEAR_OF_INF_EST := year(EST_INF_DATE)]
 
+# calculate median and 95\% CIs for Dutch/non-Dutch
+dinf <- merge(dinf,subset(dbas,select=c('PATIENT','MODE','ORIGIN')),by='PATIENT',all.x=T)
+dinf[, mwmb:= 'Foreign-born']
+dinf[ORIGIN=='NL', mwmb:= 'Dutch-born']
+med_tsi <- dinf[MODE==1 & YEAR_OF_INF_EST>=2010 & YEAR_OF_INF_EST<=2015, list( q = quantile(SER_TO_DIAG, probs = c(0.5, 0.025, 0.975),na.rm=T ),
+                             stat = c('M','CL', 'CU')),
+                by = c('mwmb')]
+med_tsi <- dcast(med_tsi,mwmb~stat,value.var='q')
+med_tsi[, L:= paste0(round(M,2),' [', round(CL,2),'-',round(CU,2),']')]
+med_tsi[, L_months:= paste0(round(M*12,2),' [', round(CL*12,2),'-',round(CU*12,2),']')]
+med_tsi
+
+set(dinf,NULL,c('MODE','ORIGIN'),NULL)
+
 ## load bplace data ----
 load(infile.seq)
 

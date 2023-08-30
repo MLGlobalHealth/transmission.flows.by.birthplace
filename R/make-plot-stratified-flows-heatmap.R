@@ -14,13 +14,14 @@ library(htmlwidgets)
 
 if (1)
 {
-  args <- list(
-    source_dir = '~/Documents/GitHub/source.attr.with.infection.time.fork',
+  args_dir <- list(
+    source_dir = '~/Documents/GitHub/transmission.flows.by.birthplace',
     #indir = '~/Box\ Sync/Roadmap/source_attribution',
     indir = '~/Box\ Sync/Roadmap',
-    pairs.dir = '/Users/alexb/Documents/GitHub/source.attr.with.infection.time.fork/out_Amsterdam/agegps_updated_criteria_MSM-2010_2022',
+    analysis = 'analysis_220713',
+    pairs.dir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/agegps_updated_criteria_MSM-2010_2022',
     #outdir = '/Users/alexb/Documents/GitHub/source.attr.with.infection.time.fork/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_TE16_MSM-2010_2022-1665619',
-    outdir = '/Users/alexb/Documents/GitHub/source.attr.with.infection.time.fork/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_sensanalysis_210216_MSM-618873',
+    outdir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_sensanalysis_210216_MSM-618873',
     clock_model = '/Users/alexb/Box Sync/Roadmap/source_attribution/molecular_clock/hierarchical',
     stanModelFile = 'mm_bgUnif_piGP_221027b',
     scenario = 15,
@@ -57,6 +58,10 @@ if(length(args_line) > 0)
 args
 
 cat(" \n --------------------------------  with arguments -------------------------------- \n")
+
+infile.seq <-	file.path(args_dir$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
+infile.bas <- file.path(args_dir$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
+infile.meta <- file.path(args_dir$indir, args_dir$analysis, 'misc', '220713_sequence_labels.rda')
 
 ### merge in patient metadata ----
 load(infile.meta)

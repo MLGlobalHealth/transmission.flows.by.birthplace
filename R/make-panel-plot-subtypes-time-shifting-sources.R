@@ -191,36 +191,66 @@ ds <- merge(ds,tmp2,by=c('MB','YEAR_OF_INF_EST'),all=T)
 ds <- subset(ds,!is.na(YEAR_OF_INF_EST))
 ds[is.na(B), B:= 0]
 ds[is.na(`Non-B`), `Non-B`:= 0]
-ds[, Unseq:= N_inf - B - `Non-B`]
-set(ds,NULL,c('N_inf','cases'),NULL)
+#ds[, Unseq:= N_inf - B - `Non-B`]
+#set(ds,NULL,c('N_inf','cases'),NULL)
 ds <- melt(ds,id.vars=c('MB','YEAR_OF_INF_EST'),variable.name='SUBTYPE')
-ds[, ST:= factor(SUBTYPE, levels=c('Unseq','B','Non-B'),labels=c('Not diagnosed and/or\nnot sequenced','Diagnosed,\nsequenced\nand subtype B','Diagnosed,\nsequenced\nand subtype\nother than B'))]
+#ds[, ST:= factor(SUBTYPE, levels=c('Unseq','B','Non-B'),labels=c('Not diagnosed and/or\nnot sequenced','Diagnosed,\nsequenced\nand subtype B','Diagnosed,\nsequenced\nand subtype\nother than B'))]
+ds[, ST:= factor(SUBTYPE, levels=c('N_inf','B','Non-B'),labels=c('Not diagnosed and/or\nnot sequenced','Diagnosed,\nsequenced\nand subtype B','Diagnosed,\nsequenced\nand subtype\nother than B'))]
+
+ds[ST=='Not diagnosed and/or\nnot sequenced',cases:='\nNot diagnosed and/or\nnot sequenced\n']
+ds <- subset(ds,value!='\nEstimated incident\ncases\n')
+ds[, value:= as.numeric(value)]
 
 #pal <- c('grey',pal_aaas('default')(2))
 pal <- pal_npg('nrc')(4)[c(3,4)]
 #pal_st <- c('gray45',pal_aaas('default')(2))
 pal_st <- c('gray45',pal_aaas('default')(9)[c(6,1)])
 pal_st <- c('gray45',pal_lancet('lanonc')(9)[c(2,1)])
-pal_st <- c('gray45',pal_jama('default')(9)[c(4,3)])
+pal_st <- c(pal_jama('default')(7)[c(4,3)])
 
 g_cases <- ggplot(subset(ds)) +
-  geom_bar(aes(x=YEAR_OF_INF_EST,y=value,col=ST),fill='white',stat="identity",position="stack") +
+  #geom_bar(aes(x=YEAR_OF_INF_EST,y=value,col=ST),fill='white',stat="identity",position="stack") +
+  #geom_bar(data=subset(ds,ST!='Not diagnosed and/or\nnot sequenced'),aes(x=YEAR_OF_INF_EST,y=value,fill=ST),color='black',stat="identity",position="stack") +
+  geom_bar(data=subset(ds,ST=='Not diagnosed and/or\nnot sequenced'),aes(x=YEAR_OF_INF_EST,y=value,col=cases),fill='white',size=0.3,stat="identity") +
+  geom_bar(data=subset(ds,ST!='Not diagnosed and/or\nnot sequenced'),aes(x=YEAR_OF_INF_EST,y=value,fill=ST),col='black',size=0.3,stat="identity",position="stack") +
   facet_grid(MB~.) +
   #scale_fill_aaas() +
-  scale_colour_manual(values=pal_st) +
-  scale_alpha_manual(values=c(0.4,0.6,1)) +
-  labs(x='Birthplace of\nincident case',alpha='Subtype', fill='Birthplace',y='\nEstimated incident cases among\nAmsterdam MSM',
+  #scale_colour_manual(values=c('gray45',pal_st)) +
+  #scale_fill_manual(values=pal_st) +
+  #scale_alpha_manual(values=c(0.4,0.6,1)) +
+  #labs(x='Birthplace of\nincident case',alpha='Subtype', fill='Birthplace',y='\nEstimated incident cases among\nAmsterdam MSM',
+  #     col='') +
+  #scale_fill_aaas() +
+  scale_fill_manual(values=pal_st) +
+  scale_colour_manual(values='black') +
+  labs(x='Birthplace of\nincident case',fill='', y='\n\nEstimated incident cases among\nAmsterdam MSM',
        col='') +
   #guides(fill="none") +
   theme_bw() +
   theme(legend.pos='bottom',
         axis.title.x = element_blank(),
         axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9),
-        strip.background=element_blank())
+        strip.background=element_blank(),
+        legend.margin=unit(0, "cm")) +
+  guides(colour = guide_legend(order=1),
+         fill = guide_legend(order=2),
+         by.col=T)
 
 
 ### plot B: proportion of Non-Bs ----
 # 1/ assuming all unsequenced were B
+
+ds <- subset(ds,SUBTYPE!='cases')
+ds[is.na(value), value:=0]
+tmp <- dcast(ds,MB+YEAR_OF_INF_EST ~ SUBTYPE,value.var='value')
+tmp[is.na(N_inf), N_inf:=0]
+tmp[is.na(B), B:=0]
+tmp[is.na(`Non-B`), `Non-B`:=0]
+tmp[, value:= N_inf - B - `Non-B`]
+tmp[, SUBTYPE:= 'Unseq']
+ds <- merge(ds,subset(tmp,select=c('MB','YEAR_OF_INF_EST','SUBTYPE','value')),by=c('MB','YEAR_OF_INF_EST','SUBTYPE','value'),all=T)
+ds <- subset(ds,SUBTYPE!='N_inf')
+
 ds[, SUBTYPE:=factor(SUBTYPE,levels=c('Unseq','B','Non-B'),labels=c('Unsequenced','B','Non-B'))]
 ds[, SUBTYPE2:=SUBTYPE]
 ds[SUBTYPE=='Unsequenced', SUBTYPE2:='B']
@@ -246,8 +276,9 @@ ds <- merge(ds_b,subset(ds2,select=c('MB','YEAR_OF_INF_EST','SUBTYPE','prop_bpla
 tmp <- melt(ds,id.vars=c('MB','YEAR_OF_INF_EST','SUBTYPE'),variable.name='assumption')
 #tmp2 <- tmp[, list(SUBTYPE,
 #                   p=value/sum(value)),by=c('MB','YEAR_OF_INF_EST','assumption')]
-tmp2 <- tmp[, list(n_tot=sum(value)),by=c('MB','YEAR_OF_INF_EST','assumption')]
+tmp2 <- tmp[, list(n_tot=sum(value,na.rm=T)),by=c('MB','YEAR_OF_INF_EST','assumption')]
 tmp <- merge(tmp,tmp2,by=c('MB','YEAR_OF_INF_EST','assumption'))
+tmp[is.na(value),value:=0]
 tmp[, c('p','CL','CU') := Hmisc::binconf(x=value,n=n_tot,return.df=T)]
 
 tmp[, assumption:= factor(assumption,levels=c('prop_bplace','allb'),labels=c('Subtype predicted\nby birthplace','All unsequenced assumed\nB subtype'))]
@@ -294,5 +325,21 @@ g <- ggarrange(ggarrange(g_cases,g_props,labels='AUTO',font.label=list(size=14),
                ggarrange(g_srcs,NULL,nrow=1,widths=c(0.8,0.2)),nrow=2,align='v',
                labels=c('','C'),font.label=list(size=14),heights=c(0.6,0.4))
 
-ggsave(file=paste0(outfile.base,'-cases_subtypes_birthplace_sources_2yrs_panel_newcols.pdf'), g, w = 11, h = 10)
-ggsave(file=paste0(outfile.base,'-cases_subtypes_birthplace_sources_2yrs_panel_newcols.png'), g, w = 11, h = 10)
+g <- plot_grid(plot_grid(g_cases,g_props,nrow=1,align='h',axis='t',rel_widths=c(0.43,0.57),labels=c('A','B'),label_size=14),
+               plot_grid(g_srcs,NULL,nrow=1,rel_widths=c(0.8,0.2),labels=c('C',''),label_size=14),
+               align='v',axis='l',rel_heights=c(0.6,0.4),nrow=2)
+
+#top_row <- plot_grid(g_cases,g_props,nrow=1,align='h',axis='t',rel_widths=c(0.4,0.6),labels=c('A','B'),label_size=14)
+#bottom_row <- plot_grid(g_srcs,NULL,nrow=1,rel_widths=c(0.8,0.2),labels=c('C',''),label_size=14)
+#g <- align_plots(top_row,bottom_row,align='v',axis='l')
+
+ggsave(file=paste0(outfile.base,'-cases_subtypes_birthplace_sources_2yrs_panel_newcols_align.pdf'), g, w = 11, h = 10)
+ggsave(file=paste0(outfile.base,'-cases_subtypes_birthplace_sources_2yrs_panel_newcols_align.png'), g, w = 11, h = 10)
+
+
+#ggdraw() +
+#  draw_plot(bxp, x = 0, y = .5, width = .5, height = .5) +
+#  draw_plot(dp, x = .5, y = .5, width = .5, height = .5) +
+#  draw_plot(bp, x = 0, y = 0, width = 1, height = 0.5) +
+#  draw_plot_label(label = c("A", "B", "C"), size = 15,
+#                  x = c(0, 0.5, 0), y = c(1, 1, 0.5))
