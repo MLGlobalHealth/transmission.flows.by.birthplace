@@ -273,6 +273,100 @@ ggsave(file = paste0(outfile.base,'-adjusted_flows_atob_samplingofcases_bplaceca
        g_hmap, w = 9, h = 7)
 
 
+
+## make panel plot ----
+
+g <- ggarrange(g_flows + theme_bw(base_size=9) + theme(axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+               ggarrange(g_hmap + theme_bw(base_size=9) + theme(axis.text.x = element_text(angle=90,vjust=0.5,hjust = 0.9)),
+                         NULL,widths=c(0.95,0.05)),
+               ncol=1,nrow=2,align='v',labels='AUTO',font.label=list(size=14),heights=c(0.47,0.53))
+
+ggsave(file = paste0(outfile.base,'-adjusted_flows_stratified_heatmap.pdf'),
+       g, w = 7, h = 8)
+ggsave(file = paste0(outfile.base,'-adjusted_flows_stratified_heatmap.png'),
+       g, w = 7, h = 8)
+
+## make sankey plot ----
+
+po[, TO_BPLACE_N:= paste0(gsub('\n',' ',TO_BPLACE),' (N=',N_TO,')')]
+po[, FROM_BPLACE:= gsub('\n',' ',FROM_BPLACE)]
+
+# Make the Network
+pal <- pal_npg('nrc')(7)
+
+po[, FROM_BPLACE:= factor(FROM_BPLACE,
+                          levels=c('Netherlands','W.Europe, N.America,Oceania','Suriname & Dutch Caribbean',
+                                   'S. America &  Caribbean','E. & C. Europe','MENA','Other'))]
+po[, TO_BPLACE_N:= factor(TO_BPLACE_N,
+                        levels=c('Netherlands (N=236)','W.Europe, N.America,Oceania (N=48)','Suriname & Dutch Caribbean (N=34)',
+                                 'S. America &  Caribbean (N=40)','E. & C. Europe (N=18)','MENA (N=15)','Other (N=18)'))]
+
+# long data
+po_long <- to_lodes_form(data.frame(subset(po,select=c('FROM_BPLACE','TO_BPLACE_N','M'))),
+                              key = "BPLACE", value = "Group", id = "Cohort",
+                              axes = 1:2)
+po_long <- data.table(po_long)
+po_long[, BPLACE_ID:= factor(BPLACE,levels=c('FROM_BPLACE','TO_BPLACE_N'),labels=c("Birth place of source", "Birth place of incident case"))]
+
+# alluvial plot
+g_sankey <- ggplot(po_long,
+       aes( x = BPLACE_ID, stratum = Group, alluvium = Cohort,y = M)) +
+  geom_flow(aes(fill=Group),width = 1/12) +
+  geom_stratum(aes(fill=Group),width = 1/4) +
+  geom_text(stat = "stratum", aes(label = Group),size=3) +
+  scale_x_discrete(expand = c(0.2, 0.2)) +
+  #scale_x_discrete(limits = c("Birth place of likely transmitter", "Birth place of incident case"), expand = c(.05, .05)) +
+  #scale_fill_npg() +
+  scale_fill_manual(values=   c('Netherlands' = pal[1], 'W.Europe, N.America,Oceania' = pal[2],
+                                'Suriname & Dutch Caribbean' = pal[3],'S. America &  Caribbean' = pal[4],
+                                'E. & C. Europe' = pal[5], 'MENA' = pal[6], 'Other' = pal[7],
+                                'Netherlands (N=236)' = pal[1], 'W.Europe, N.America,Oceania (N=48)' = pal[2],
+                                'Suriname & Dutch Caribbean (N=34)' = pal[3],'S. America &  Caribbean (N=40)' = pal[4],
+                                'E. & C. Europe (N=18)' = pal[5], 'MENA (N=15)' = pal[6], 'Other (N=18)' = pal[7])) +
+  theme_bw() +
+  theme(axis.title=element_blank(),axis.text.y=element_blank(),axis.ticks=element_blank(),
+        axis.text.x=element_text(size=12),plot.margin = margin(0, 0, 0, 0, "cm"),
+        legend.position='none',panel.border = element_blank(),panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+ggsave(file = paste0(outfile.base,'-adjusted_flows_sankey.png'),
+       g_sankey, w = 7, h = 7)
+
+
+# matrix of flows
+po <- readRDS(file=paste0(outfile.base,'-adjusted_flows_atob_samplingofcases_bplacecase_bplacesrc','.RDS'))
+
+tmp <- expand.grid(FROM_BPLACE=unique(po$FROM_BPLACE),
+                   TO_BPLACE=unique(po$TO_BPLACE))
+po <- merge(po,tmp,all=T)
+po[is.na(M), M:=0]
+
+g_matrix <- ggplot(po, aes(x=TO_BPLACE, y=FROM_BPLACE,fill=M)) +
+  geom_tile(color='grey') +
+  geom_text(aes(label = paste0(round(M*100, 2),'%')), size=2.5) +
+  scale_fill_viridis(discrete=F,option="magma",direction=-1,begin=0.1,na.value = "white",alpha=0.5) +
+  labs(x='Birth place of incident case\n\n',y='\nBirth place of source',fill='Estimated transmission flows') +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust = 0.9),legend.pos='none',
+        panel.grid.minor = element_blank(),panel.grid.major = element_blank())
+
+
+## make sankey panel plot ----
+
+g <- ggarrange(g_flows + theme_bw(base_size=9) + theme(axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+               ggarrange(g_sankey + theme_bw(base_size=9) + theme(axis.title=element_blank(),axis.text.y=element_blank(),axis.ticks=element_blank(),
+                                                                    axis.text.x=element_text(size=9),plot.margin = margin(0, 0, 0, 0, "cm"),
+                                                                    legend.position='none',text = element_text(size = 6),
+                                                                  panel.border = element_blank(),panel.grid.major = element_blank(),panel.grid.minor = element_blank()),
+                         g_matrix + theme_bw(base_size=9) +
+                           theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust = 0.9),legend.pos='none',
+                                 panel.grid.minor = element_blank(),panel.grid.major = element_blank()),
+                         widths=c(0.6,0.4),align='v',labels=c('B','C'),font.label=list(size=14),heights=c(0.47,0.53)),
+               ncol=1,nrow=2,labels=c('A',NA),font.label=list(size=14),heights=c(0.47,0.53))
+
+ggsave(file = paste0(outfile.base,'-adjusted_flows_stratified_sankey_matrix.pdf'),
+       g, w = 10, h = 8)
+ggsave(file = paste0(outfile.base,'-adjusted_flows_stratified_sankey_matrix.png'),
+       g, w = 10, h = 8)
+
 ## make time-shifting sources plot ----
 po <- readRDS(file=paste0(outfile.base,'-adjusted_flows_mwmb_by2years_samplingofcases','.RDS'))
 
@@ -294,10 +388,31 @@ g_srcs <- ggplot(subset(po,TO_BPLACE=='Overall')) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
 
 
+g <- ggarrange(g_flows + theme_bw(base_size=9) + theme(axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+               ggarrange(g_sankey + theme_bw(base_size=9) + theme(axis.title=element_blank(),axis.text.y=element_blank(),axis.ticks=element_blank(),
+                                                                  axis.text.x=element_text(size=9),plot.margin = margin(0, 0, 0, 0, "cm"),
+                                                                  legend.position='none',text = element_text(size = 6),
+                                                                  panel.border = element_blank(),panel.grid.major = element_blank(),panel.grid.minor = element_blank()),
+                         g_matrix + theme_bw(base_size=9) +
+                           theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust = 0.9),legend.pos='none',
+                                 panel.grid.minor = element_blank(),panel.grid.major = element_blank()),
+                         g <- ggarrange(g_flows + theme_bw(base_size=9) + theme(axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+               ggarrange(g_sankey + theme_bw(base_size=9) + theme(axis.title=element_blank(),axis.text.y=element_blank(),axis.ticks=element_blank(),
+                                                                    axis.text.x=element_text(size=9),plot.margin = margin(0, 0, 0, 0, "cm"),
+                                                                    legend.position='none',text = element_text(size = 6),
+                                                                  panel.border = element_blank(),panel.grid.major = element_blank(),panel.grid.minor = element_blank()),
+                         g_matrix + theme_bw(base_size=9) +
+                           theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust = 0.9),legend.pos='none',
+                                 panel.grid.minor = element_blank(),panel.grid.major = element_blank()),
+                         widths=c(0.6,0.4),align='v',labels=c('B'),font.label=list(size=14),heights=c(0.47,0.53)),
+               g_srcs,
+               ncol=1,nrow=2,labels=c('A',NA),font.label=list(size=14),heights=c(0.47,0.53))
+
+
  g <- ggarrange(g_flows + theme_bw(base_size=9) + theme(axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
                 ggarrange(g_hmap + theme_bw(base_size=9) + theme(axis.text.x = element_text(angle=90,vjust=0.5,hjust = 0.9)),
                           NULL,widths=c(0.95,0.05)),g_srcs + theme_bw(base_size=9),
-                ncol=1,nrow=3,align='v',labels='AUTO',font.label=list(size=12),heights=c(0.33,0.42,0.25))
+                ncol=1,nrow=3,align='v',labels='AUTO',font.label=list(size=14),heights=c(0.33,0.42,0.25))
 
 ggsave(file = paste0(outfile.base,'-stratified_flows_heatmap_temporal.pdf'),
        g, w = 7, h = 11)

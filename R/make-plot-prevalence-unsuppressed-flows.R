@@ -17,7 +17,7 @@ require(lubridate)
 
 if (1)
 {
-  args <- list(
+  args_dir <- list(
     source_dir = '~/Documents/GitHub/transmission.flows.by.birthplace',
     #indir = '~/Box\ Sync/Roadmap/source_attribution',
     indir = '~/Box\ Sync/Roadmap',
@@ -32,7 +32,8 @@ if (1)
     rep = 1,
     simulate_data = T,
     job_tag = 'agegps_sensanalysis_210216_MSM-2010_2022',
-    undiagnosed = '/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon/Roadmap/sources/ethnicity_analysis/undiagnosed/undiagnosed_211102-cohort_2010_2015'
+    undiagnosed = '/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon/Roadmap/sources/ethnicity_analysis/undiagnosed/undiagnosed_211102-cohort_2010_2015',
+    overwrite = 0
   )
 }
 
@@ -63,22 +64,23 @@ args
 
 cat(" \n --------------------------------  with arguments -------------------------------- \n")
 
-infile.seq <-	file.path(args$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
-infile.bas <- file.path(args$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
-infile.meta <- file.path(args$indir, args$analysis, 'misc', '220713_sequence_labels.rda')
+infile.seq <-	file.path(args_dir$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
+infile.bas <- file.path(args_dir$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
+infile.meta <- file.path(args_dir$indir, args$analysis, 'misc', '220713_sequence_labels.rda')
 
 ## read stanin
 cat('\nReading Stan input data...')
-infile.stanin <- list.files(args$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
+infile.stanin <- list.files(args_dir$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
 stopifnot(length(infile.stanin)>0)
 stopifnot(length(infile.stanin)<=1)
-tmp <- load(file.path(args$outdir, infile.stanin))
+tmp <- load(file.path(args_dir$outdir, infile.stanin))
 stopifnot(c('args','stan_data')%in%tmp)
-args$analysis = 'analysis_220713'
-args$indir = '~/Box\ Sync/Roadmap'
+args$analysis = args_dir$analysis
+args$indir = args_dir$indir
 ## TODO FIX ARGS
-args$job_tag = 'agegps_sensanalysis_210216_MSM-2010_2022'
-args$undiagnosed = '/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon/Roadmap/sources/ethnicity_analysis/undiagnosed/undiagnosed_211102-cohort_2010_2015'
+args$job_tag = args_dir$job_tag
+args$undiagnosed = args_dir$undiagnosed
+args$overwrite = args_dir$overwrite
 
 tmp <- paste0(outfile.base,'-fitted_stan_model.rds')
 cat("\n Read fitted dat ", tmp , "\n")
@@ -121,7 +123,7 @@ do[, TO_BPLACE:= factor(TO_BPLACE,
                         levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
                                  'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
 
-### calculate prevalence ----
+## calculate prevalence ----
 ## plot % birthplace among sources by % HIV positive in 2010-2021 (i.e. infection date <2021 or whole cohort)
 ## load infection date data
 dinf <- data.table(read.csv(file.path('data_Ams',args$analysis,'Infection_date_est_rec.csv')))
@@ -152,29 +154,40 @@ dinf[LOC_BIRTH %in% c("DutchCarSuriname"), LOC_BIRTH_POS:="Suriname &\nDutch Car
 dinf[LOC_BIRTH %in% c("MENA"), LOC_BIRTH_POS:="MENA"]
 dinf[ORIGIN=="NL", LOC_BIRTH_POS:="Netherlands"]
 
-# count the cases pre-2010
-#pre <- dinf[,list(YEAR = 'pre-2010',
-#                       N=length(TO_SEQUENCE_ID[YEAR_OF_INF_EST< 2010 & is.na(DEATH_D)])), # count total cases pre-2010, discounting anyone who died
-#                 by=c('LOC_BIRTH_POS')]
-#pre[, N_tot:= sum(N)]
-
+### count the cases ----
 # count the incident cases 2010-2021
-# TODO! do not remove those who died from incidence ! but should remove them from prevalence (just count the ones in data as we assume anyone who died of AIDS is in our data)
+# count the number who died each year (to remove in prevalence calculation)
 tmp <- list()
 tmp2 <- list()
+bplaces <- unique(dinf$LOC_BIRTH_POS)
 for(i in 1980:2021){
-  tmp[[i]] <- dinf[,list(YEAR = i,
-                         N=length(TO_SEQUENCE_ID[YEAR_OF_INF_EST== i & is.na(DEATH_D)])),
-                   by=c('LOC_BIRTH_POS')]
-  tmp2[[i]] <- dinf[,list(YEAR = i,
-                          N_total=length(TO_SEQUENCE_ID[YEAR_OF_INF_EST== i & is.na(DEATH_D)])),
-  ]
+  tmp[[i]] <- list()
+  tmp2[[i]] <- list()
+  for(j in bplaces){
+  tmp[[i]][[j]] <- dinf[,list(YEAR = i,
+                         LOC_BIRTH_POS = j,
+                         N_i=length(unique(na.omit(TO_SEQUENCE_ID[YEAR_OF_INF_EST== i & LOC_BIRTH_POS==j]))),
+                         N_d=length(unique(na.omit(TO_SEQUENCE_ID[year(DEATH_D) == i & LOC_BIRTH_POS==j]))))]
+  tmp2[[i]][[j]] <- dinf[,list(YEAR = i,
+                          LOC_BIRTH_POS = j,
+                          N_i_total=length(na.omit(TO_SEQUENCE_ID[YEAR_OF_INF_EST== i & LOC_BIRTH_POS==j])),
+                          N_d_total=length(na.omit(TO_SEQUENCE_ID[year(DEATH_D) == i & LOC_BIRTH_POS==j])))]
+  }
+  tmp[[i]] <- do.call(`rbind`,tmp[[i]])
+  tmp2[[i]] <- do.call(`rbind`,tmp2[[i]])
 }
 tmp <- do.call(`rbind`,tmp)
 tmp2 <- do.call(`rbind`,tmp2)
-tmp <- merge(tmp,tmp2,by=c('YEAR'),all=T)
+tmp <- merge(tmp,tmp2,by=c('YEAR','LOC_BIRTH_POS'),all=T)
 
-## adjust for undiagnosed ----
+# plot new cases and deaths per year
+ggplot(tmp) + geom_line(aes(x=YEAR,y=N_i_total),col='black') +
+  geom_line(aes(x=YEAR,y=N_d_total),col='red') +
+  labs(x='Year',y='Number of cases') +
+  theme_bw()
+if(args$overwrite){ggsave(file = paste0(outfile.base,'-incident_cases_deaths_byyear.png'), w = 5, h = 5)}
+
+### adjust for undiagnosed ----
 ### load estimates of proportion undiagnosed
 
 #ds <- readRDS(file=file.path(args$undiagnosed,paste0('p_undiagnosed_byyear_cohort_2010_2015_MSM.RDS')))
@@ -188,33 +201,39 @@ setnames(ds,'mwmb','migrant_group')
 ds <- merge(tmp,ds,by.x=c('LOC_BIRTH_POS','YEAR'),by.y=c('migrant_group','year'),all=T)
 ds[is.na(av_undiagnosed), av_undiagnosed:=0] # set pre-2010 prob(undiagnosed) to 0
 ## calculate total infected
-ds[, N_inf:= round(N/(1-av_undiagnosed))]
+ds[, N_inf:= round(N_i/(1-av_undiagnosed))]
 
 ## calculate prevalence 2010-2021
+# sum the new cases acquired up to each year i and remove any cases which died up to year i
 tmp <- list()
 tmp2 <- list()
 for(i in 1980:2021){
   tmp[[i]] <- ds[,list(YEAR = i,
-                         N=sum(N_inf[YEAR<= i])),
+                         N=sum(N_inf[YEAR<= i]) - sum(N_d[YEAR<=i])),
                    by=c('LOC_BIRTH_POS','iter')]
   tmp2[[i]] <- ds[,list(YEAR = i,
-                          N_total=sum(N_inf[YEAR<= i])),
+                          N_total=sum(N_inf[YEAR<= i]) - sum(N_d[YEAR<=i])),
   by='iter']
 }
 tmp <- do.call(`rbind`,tmp)
 tmp2 <- do.call(`rbind`,tmp2)
 tmp <- merge(tmp,tmp2,by=c('YEAR','iter'),all=T)
 tmp[, prev:= N/N_total]
+if(args$overwrite){saveRDS(tmp,file=paste0(outfile.base,'-PLHIV_byyear_MCsamples','.RDS'))}
 
+
+### calculate weighted average ----
 # generate weights of total PLHIV across the 11 years
 wts <- tmp[LOC_BIRTH_POS=='Netherlands' & YEAR %in% 2010:2021, list(YEAR=YEAR, w=N_total/sum(N_total)),
            by='iter'] # only do for NL because N_total same for all birth regions
 tmp <- merge(tmp,wts,by=c('YEAR','iter'))
 dp <- tmp[, list(pct=sum(prev*w)),by=c('LOC_BIRTH_POS','iter')]
-dp[, dp:= factor(LOC_BIRTH_POS,
+dp[, FROM_BPLACE:= factor(LOC_BIRTH_POS,
                           levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
-                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
-saveRDS(dp,file=paste0(outfile.base,'-prevalence_MC_samples','.RDS'))
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                          labels=c('Netherlands','W.Europe,\nN.America & Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
+if(args$overwrite){saveRDS(dp,file=paste0(outfile.base,'-prevalence_MC_samples','.RDS'))}
 
 dp <- dp[,
          list( q = quantile(pct, probs = c(0.5, 0.025, 0.975) ),
@@ -223,11 +242,11 @@ dp <- dp[,
          by = c('FROM_BPLACE')
 ]
 dp <- dcast.data.table(dp, FROM_BPLACE  ~stat, value.var = 'q')
-saveRDS(dp,file=paste0(outfile.base,'-prevalence_CIs','.RDS'))
+if(args$overwrite){saveRDS(dp,file=paste0(outfile.base,'-prevalence_CIs','.RDS'))}
 
 ### plot prevalence ----
 g_prev <- ggplot(subset(dp)) + geom_bar(aes(x=FROM_BPLACE,y=M,fill=FROM_BPLACE),stat='identity',position=position_dodge(width=0.9)) +
-  geom_errorbar(aes(x=FROM_BPLACE,ymin=CL, ymax=CU,fill=FROM_BPLACE),position=position_dodge(width=0.9), width=0.5, colour="black")	+
+  #geom_errorbar(aes(x=FROM_BPLACE,ymin=CL, ymax=CU,fill=FROM_BPLACE),position=position_dodge(width=0.9), width=0.5, colour="black")	+
   scale_fill_npg() +
   labs(x='Birthplace of\nincident case',fill='Birthplace of likely\ntransmitter', y='Prevalence by place of birth \n(weighted average 2010-2021)') +
   theme_bw(base_size=28) +
@@ -237,10 +256,12 @@ g_prev <- ggplot(subset(dp)) + geom_bar(aes(x=FROM_BPLACE,y=M,fill=FROM_BPLACE),
         axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9)) +#+ #,
   coord_cartesian(ylim = c(0,1)) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
-ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_prevalence_CIs.pdf'), g_prev, w = 23, h = 10)
-ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_prevalence_CIs.png'), g_prev, w = 16, h = 10)
+if(args$overwrite){
+  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_prevalence.pdf'), g_prev, w = 23, h = 10)
+  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_prevalence.png'), g_prev, w = 16, h = 10)
+}
 
-## plot flows by birthplace ----
+### plot flows by birthplace ----
 cat(" \n --------------------------------  plot flows by birthplace -------------------------------- \n")
 spy <- readRDS(file=paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS'))
 
@@ -262,7 +283,7 @@ po <- po[, list(value = sum(value/psi)), by = c('draw','FROM_BPLACE')]
 tmp <- po[, list(total = sum(value)), by = c('draw')]
 po <- merge(po, tmp, by = 'draw')
 po[, paf := value/total]
-saveRDS(po,file=paste0(outfile.base,'-flows_frombplace_adjusted_samplingbias_mcsamples','.RDS'))
+if(args$overwrite){saveRDS(po,file=paste0(outfile.base,'-flows_frombplace_adjusted_samplingbias_mcsamples','.RDS'))}
 
 po <- po[,
          list( q = quantile(paf, probs = c(0.5, 0.025, 0.25, 0.75, 0.975) ),
@@ -273,11 +294,13 @@ po <- po[,
 po <- dcast.data.table(po, FROM_BPLACE~stat, value.var = 'q')
 setnames(po,'FROM_BPLACE','FROM_BPLACE')
 po[, TO_BPLACE:= 'Overall']
-saveRDS(po,file=paste0(outfile.base,'-rep_',replicate,'-adjusted_flows_samplingofcases','.RDS'))
+if(args$overwrite){saveRDS(po,file=paste0(outfile.base,'-rep_',replicate,'-adjusted_flows_samplingofcases','.RDS'))}
 
 po[, FROM_BPLACE:= factor(FROM_BPLACE,
                           levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
-                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                          labels=c('Netherlands','W.Europe,\nN.America & Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
 
 # for 3panel plot
 g1 <- ggplot(subset(po,TO_BPLACE=='Overall')) + geom_bar(aes(x=FROM_BPLACE,y=M,fill=FROM_BPLACE),stat='identity',position=position_dodge(width=0.9)) +
@@ -291,16 +314,25 @@ g1 <- ggplot(subset(po,TO_BPLACE=='Overall')) + geom_bar(aes(x=FROM_BPLACE,y=M,f
         axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9)) +#+ #,
   coord_cartesian(ylim = c(0,1)) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
-ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_flows.pdf'), g1, w = 23, h = 10)
-ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_flows.png'), g1, w = 16, h = 10)
+if(args$overwrite){
+  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_flows.pdf'), g1, w = 23, h = 10)
+  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_flows.png'), g1, w = 16, h = 10)
+}
 
-## plot flows over prevelance contributions ----
+### plot flows over prevelance contributions ----
 cat(" \n --------------------------------  plot flows over prevalence contributions -------------------------------- \n")
 
 po <- readRDS(file=paste0(outfile.base,'-flows_frombplace_adjusted_samplingbias_mcsamples','.RDS'))
 
+po[, FROM_BPLACE:= factor(FROM_BPLACE,
+                          levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                          labels=c('Netherlands','W.Europe,\nN.America & Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
+
 po <- merge(po, dp, by='FROM_BPLACE')
-po[, contr_prev:= paf/pct]
+#po[, contr_prev:= paf/pct]
+po[, contr_prev:= paf/M]
 po <- po[,
          list( q = quantile(contr_prev, probs = c(0.5, 0.025, 0.25, 0.75, 0.975) ),
                stat = c('M','CL','IL', 'IU', 'CU')
@@ -309,11 +341,8 @@ po <- po[,
 ]
 po <- dcast.data.table(po, FROM_BPLACE~stat, value.var = 'q')
 po[, TO_BPLACE:= 'Overall']
-saveRDS(po,file=paste0(outfile.base,'-rep_',replicate,'-flows_frombplace_hivpos','.RDS'))
+if(args$overwrite){saveRDS(po,file=paste0(outfile.base,'-rep_',replicate,'-flows_frombplace_hivpos','.RDS'))}
 
-po[, FROM_BPLACE:= factor(FROM_BPLACE,
-                          levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
-                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
 pal <- pal_npg("nrc")(4)[c(1,3,4)]
 
 g2 <- ggplot(subset(po,TO_BPLACE=='Overall')) +
@@ -326,15 +355,16 @@ g2 <- ggplot(subset(po,TO_BPLACE=='Overall')) +
   theme(legend.pos='none',
         axis.title.x = element_blank(),
         axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9)) #+ #,
-ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_flows_over_prev.pdf'), g2, w = 23, h = 10)
-ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_flows_over_prev.png'), g2, w = 16, h = 10)
+if(args$overwrite){
+  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_flows_over_prev.pdf'), g2, w = 23, h = 10)
+  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_flows_over_prev.png'), g2, w = 16, h = 10)
+}
 
-## load VL data and estimate unsuppressed ----
+## estimate unsuppressed ----
 cat(" \n --------------------------------  get unsuppressed by year -------------------------------- \n")
-# should be out of OBSERVED COHORT (not undiagnosed)
-## OR: should we include the undiagnosed in the numerator too, since presumably they are unsuppressed?
-# probably doesn't matter because if we add them to numerator and denominator we add no information, but we may have less uncertainty (bad)
+# we obtain the unsuppressed by subtracting the estimated virally suppressed population from the estimated total of PLHIV in each year
 
+### load viral loads ----
 infile.rna <-	file.path(indir_data, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_RNA.csv')
 dat <- read.csv(infile.rna,header=T)
 dat$RNA_D <- as.Date(dat$RNA_D,format=c("%Y-%m-%d"))
@@ -345,150 +375,76 @@ dat[RNA_V==-1 & !is.na(RNA_L), RNA_V:= RNA_L - 1]
 dat[RNA_V==-1 & !is.na(RNA_UL), RNA_V:= RNA_UL + 1]
 dat[RNA_V==-1, RNA_V:= 0]
 dat[RNA_V==-1000 & RNA_L==-999, RNA_V:= -1]
-# copy mean of each person's last 2 measurements to end of follow-up so we don't have missing values
-dat2 <- dat %>%
-  group_by(PATIENT) %>%
-  slice_tail(n = 2)
-dat2 <- data.table(dat2)
-dat2 <- dat2[, list(RNA_V=mean(RNA_V,na.rm=T)),by='PATIENT']
-dat2[, RNA_D:= max(dat$RNA_D)] # add date of last obs to impute until
-dat <- merge(dat,dat2,by=c('PATIENT','RNA_D','RNA_V'),all=T)
 
-# just keep patients in incidence cohort
-#dinf <- unique(subset(dinf,YEAR_OF_INF_EST >= 2010 & YEAR_OF_INF_EST<2022)) # remove this! want unsuppressed in whole pop, not just cases
-dat <- subset(dat,PATIENT %in% dinf$TO_SEQUENCE_ID)
+# keep last VL measure per year for each patient and classify suppressed
+dat[, YEAR:= year(RNA_D)]
+dv <- setDT(dat)[, .SD[.N], by = c('PATIENT','YEAR')]
+dv[RNA_V<=200, supp:=1]
+dv[RNA_V>200, supp:=0]
+#dv <- dv[, list(N_unsupp=length(PATIENT[supp==0])/length(PATIENT)),by=YEAR]
 
-# get infection date of recipient to predict VL of transmitter for
+### load prevalence estimates ----
+dp <- readRDS(file=paste0(outfile.base,'-PLHIV_byyear_MCsamples','.RDS'))
+dp <- dp[,
+              list( q = quantile(N, probs = c(0.5, 0.025, 0.975) ),
+                    stat = c('M','CL', 'CU')
+              ),
+              by = c('YEAR','LOC_BIRTH_POS')
+]
+dp <- dcast.data.table(dp, YEAR+LOC_BIRTH_POS  ~stat, value.var = 'q')
+dp[, LOC_BIRTH_POS:= factor(LOC_BIRTH_POS,
+                          levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+ggplot(dp) +
+  geom_ribbon(aes(ymin=CL, ymax=CU, x=YEAR, fill = LOC_BIRTH_POS), alpha = 0.3) +
+  geom_line(aes(x = YEAR, y = M, colour = LOC_BIRTH_POS)) +
+  theme_bw() +
+  scale_colour_npg() +
+  scale_fill_npg() +
+  guides(fill='none') +
+  labs(x='Year',y='Number of prevalent cases',col='Place of birth')
+if(args$overwrite){ggsave(file = paste0(outfile.base,'-estimated_prevalent_cases_by_year_bplace.png'), w = 5, h = 3)}
 
-# add 1st jan for every year to predict
-tmp <- data.table(expand.grid(PATIENT=unique(dat$PATIENT),
-                              RNA_D=as.Date(c('2010-12-31','2011-12-31','2012-12-31','2013-12-31','2014-12-31','2015-12-31','2016-12-31',
-                                              '2017-12-31','2018-12-31','2019-12-31','2020-12-31','2021-12-31'))))
-dat <- merge(dat,tmp,by=c('PATIENT','RNA_D'),all=T)
-
-# need to copy first VL measurement to 2010 so that individuals with a long time to diagnosis are estimated as unsuppressed for dates between infection and diagnosis
-
-
-# remove patients with less than 4 measurements
-tmp <- unique(subset(dat,select=c('PATIENT','RNA_D','RNA_V')))
-dn <- tmp[, list(N=length(RNA_V[!is.na(RNA_V)])),by=c('PATIENT')]
-dat <- merge(dat,dn,by='PATIENT',all.x=T)
-dat <- subset(dat, N>3)
-dl <- subset(dat,PATIENT %notin% c('912511','904491','919461')) %>% # exclude  patients with problems fitting loess
-  group_by(PATIENT) %>%
-  arrange(PATIENT, RNA_D) %>%
-  nest() %>%
-  mutate(
-    pred.response = purrr::map(data, function(x)stats::loess(RNA_V~as.numeric(RNA_D), span= 0.5, data = x,na.action="na.omit") %>%
-                                 stats::predict(data.frame(RNA_D = as.numeric(x$RNA_D))))) %>%
-  unnest(cols = c(data, pred.response))
-dl <- data.table(dl)
-
-# flag patients virally suppressed by putative infection date of recipient
-dv <- data.table(unique(subset(dl,select=c('PATIENT','RNA_D','pred.response'))))
-dv[pred.response<=200, supp:=1] # updated from 100 based on SHM report defn of suppression
-dv[pred.response>200, supp:=0]
-dv <- subset(dv,RNA_D %in% as.Date(c('2010-12-31','2011-12-31','2012-12-31','2013-12-31','2014-12-31','2015-12-31','2016-12-31',
-                                     '2017-12-31','2018-12-31','2019-12-31','2020-12-31','2021-12-31')))
-# add any pts back in who we could not predict VLs
-tmp <- data.table(expand.grid(PATIENT=unique(dinf$TO_SEQUENCE_ID),
-                              RNA_D=as.Date(c('2010-12-31','2011-12-31','2012-12-31','2013-12-31','2014-12-31','2015-12-31','2016-12-31',
-                                              '2017-12-31','2018-12-31','2019-12-31','2020-12-31','2021-12-31'))))
-dv <- merge(dv,tmp,by=c('PATIENT','RNA_D'),all=T)
 
 # merge in infection date
 dv <- merge(dv,subset(dinf,select=c('TO_SEQUENCE_ID','DIAGNOSIS_DATE','DIAGNOSIS_DATE_N','EST_INF_DATE','YEAR_OF_INF_EST','LOC_BIRTH_POS')),
             by.x='PATIENT',by.y='TO_SEQUENCE_ID',all=T)
 
-# merge in migration date and death date
-dv <- merge(dv,subset(dbas,select=c('PATIENT','MIG_D','DEATH_D')),
-            by='PATIENT',all.x=T)
+### count suppressed ----
 
-tmp <- dv[, list(N_inf_2010 = length(unique(PATIENT[EST_INF_DATE<='2010-12-31' & RNA_D>='2010-01-01' & RNA_D<='2010-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
-                 N_supp_2010 = length(unique(PATIENT[EST_INF_DATE<='2010-12-31' & RNA_D>='2010-01-01' & RNA_D<='2010-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
-                 N_inf_2011 = length(unique(PATIENT[EST_INF_DATE<='2011-12-31' & RNA_D>='2011-01-01' & RNA_D<='2011-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
-                 N_supp_2011 = length(unique(PATIENT[EST_INF_DATE<='2011-12-31' & RNA_D>='2011-01-01' & RNA_D<='2011-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
-                 N_inf_2012 = length(unique(PATIENT[EST_INF_DATE<='2012-12-31' & RNA_D>='2012-01-01' & RNA_D<='2012-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
-                 N_supp_2012 = length(unique(PATIENT[EST_INF_DATE<='2012-12-31' & RNA_D>='2012-01-01' & RNA_D<='2012-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
-                 N_inf_2013 = length(unique(PATIENT[EST_INF_DATE<='2013-12-31' & RNA_D>='2013-01-01' & RNA_D<='2013-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
-                 N_supp_2013 = length(unique(PATIENT[EST_INF_DATE<='2013-12-31' & RNA_D>='2013-01-01' & RNA_D<='2013-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
-                 N_inf_2014 = length(unique(PATIENT[EST_INF_DATE<='2014-12-31' & RNA_D>='2014-01-01' & RNA_D<='2014-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
-                 N_supp_2014 = length(unique(PATIENT[EST_INF_DATE<='2014-12-31' & RNA_D>='2014-01-01' & RNA_D<='2014-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
-                 N_inf_2015 = length(unique(PATIENT[EST_INF_DATE<='2015-12-31' & RNA_D>='2015-01-01' & RNA_D<='2015-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
-                 N_supp_2015 = length(unique(PATIENT[EST_INF_DATE<='2015-12-31' & RNA_D>='2015-01-01' & RNA_D<='2015-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
-                 N_inf_2016 = length(unique(PATIENT[EST_INF_DATE<='2016-12-31' & RNA_D>='2016-01-01' & RNA_D<='2016-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
-                 N_supp_2016 = length(unique(PATIENT[EST_INF_DATE<='2016-12-31' & RNA_D>='2016-01-01' & RNA_D<='2016-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
-                 N_inf_2017 = length(unique(PATIENT[EST_INF_DATE<='2017-12-31' & RNA_D>='2017-01-01' & RNA_D<='2017-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
-                 N_supp_2017 = length(unique(PATIENT[EST_INF_DATE<='2017-12-31' & RNA_D>='2017-01-01' & RNA_D<='2017-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
-                 N_inf_2018 = length(unique(PATIENT[EST_INF_DATE<='2018-12-31' & RNA_D>='2018-01-01' & RNA_D<='2018-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
-                 N_supp_2018 = length(unique(PATIENT[EST_INF_DATE<='2018-12-31' & RNA_D>='2018-01-01' & RNA_D<='2018-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
-                 N_inf_2019 = length(unique(PATIENT[EST_INF_DATE<='2019-12-31' & RNA_D>='2019-01-01' & RNA_D<='2019-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
-                 N_supp_2019 = length(unique(PATIENT[EST_INF_DATE<='2019-12-31' & RNA_D>='2019-01-01' & RNA_D<='2019-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
-                 N_inf_2020 = length(unique(PATIENT[EST_INF_DATE<='2020-12-31' & RNA_D>='2020-01-01' & RNA_D<='2020-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
-                 N_supp_2020 = length(unique(PATIENT[EST_INF_DATE<='2020-12-31' & RNA_D>='2020-01-01' & RNA_D<='2020-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1])),
-                 N_inf_2021 = length(unique(PATIENT[EST_INF_DATE<='2021-12-31' & RNA_D>='2021-01-01' & RNA_D<='2021-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D)])),
-                 N_supp_2021 = length(unique(PATIENT[EST_INF_DATE<='2021-12-31' & RNA_D>='2021-01-01' & RNA_D<='2021-12-31' & (is.na(MIG_D) | MIG_D<=RNA_D) & supp==1]))
-),by='LOC_BIRTH_POS']
-tmp2 <- melt(subset(tmp,select=c('LOC_BIRTH_POS',colnames(tmp)[grep('N_inf',colnames(tmp))])),id.vars='LOC_BIRTH_POS')
-setnames(tmp2,c('variable','value'),c('YEAR','N_inf'))
-tmp2[, YEAR:= gsub('N_inf_','',YEAR)]
-tmp3 <- melt(subset(tmp,select=c('LOC_BIRTH_POS',colnames(tmp)[grep('N_supp',colnames(tmp))])),id.vars='LOC_BIRTH_POS')
-setnames(tmp3,c('variable','value'),c('YEAR','N_supp'))
-tmp3[, YEAR:= gsub('N_supp_','',YEAR)]
-du <- merge(tmp2,tmp3,by=c('YEAR','LOC_BIRTH_POS'))
-du[, YEAR:= as.integer(YEAR)]
+# exclude MSM without an estimated infection date
+tmp <- dv[!is.na(YEAR) & !is.na(LOC_BIRTH_POS),list(N_supp=length(unique(PATIENT[supp==1]))),by=c('YEAR','LOC_BIRTH_POS')]
 
-# adjust N_inf for undiagnosed
-ds <- readRDS(file=file.path(args$undiagnosed,paste0('p_undiagnosed_byyear_MC_samples_cohort_2010_2015_MSM.RDS')))
-dmap <- data.table(mwmb=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
-                          'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
-                   mgid=c(1,2,3,4,5,6,7))
-ds <- merge(ds,dmap,by.x='mg',by.y='mgid')
-setnames(ds,'mwmb','migrant_group')
+# merge with prevalence estimates
+dp <- merge(dp,tmp,by=c('YEAR','LOC_BIRTH_POS'),all=T)
+dp <- subset(dp,YEAR!=1911 & YEAR!=2022)
+dp[, unsupp:= M - N_supp]
 
-# get average # undiagnosed for each year of prevalence
-tmp <- list()
-for(i in 2010:2021){
-  tmp[[i]] <- ds[year<=i,list(year = i,
-                         av_undiag=mean(av_undiagnosed)),
-                   by=c('migrant_group','iter')]
-}
-tmp <- do.call(`rbind`,tmp)
+# sum over
+tmp <- dp[, list(unsupp_tot=sum(unsupp,na.rm=T)),by=c('YEAR')]
+du <- merge(dp,tmp,by=c('YEAR'))
+du <- subset(du, YEAR %in% 2010:2021)
 
-du <- merge(du,tmp,by.x=c('LOC_BIRTH_POS','YEAR'),by.y=c('migrant_group','year'),all=T)
-## calculate total infected
-du[, N_inf:= round(N_inf/(1-av_undiag))]
-
-# count unsuppressed
-du[, unsupp:= N_inf - N_supp]
-set(du,NULL,'N_inf',NULL)
-
-tmp <- du[, list(unsupp_tot=sum(unsupp)),by=c('YEAR','iter')]
-du <- merge(du,tmp,by=c('YEAR','iter'))
-
-## calculate weighted average ----
+### calculate weighted average ----
 cat(" \n --------------------------------  calculate weighted average -------------------------------- \n")
 
 # generate weights of total PLHIV across the 11 years
-#di <- dv[, list(N_inf=length(unique(PATIENT))),by=c('YEAR_OF_INF_EST','LOC_BIRTH_POS')]
-#dp <- sp[, list(N_inf_tot=sum(N_inf)),by=c('LOC_BIRTH_POS')]
-#sp <- merge(sp,dp,by='LOC_BIRTH_POS')
-#sp[, w:=N_inf/N_inf_tot]
-
-#du[, YEAR:= as.integer(YEAR)]
-#du <- merge(du,sp,by.x=c('LOC_BIRTH_POS','YEAR'),by.y=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'),all=T)
-du <- merge(du,wts,by=c('YEAR','iter'),all=T)
+if(0){
+  du <- merge(du,wts,by=c('YEAR','iter'),all=T)
+}
+du <- merge(du,wts,by=c('YEAR'),all=T,allow.cartesian=T)
+du <- subset(du,!is.na(LOC_BIRTH_POS))
 
 du[is.na(w), w:=0]
-#du[is.na(N_inf), N_inf:=0]
-#du[is.na(N_inf_tot), N_inf_tot:=0]
 
 # calculate proportion of birth regions among the unsuppressed as a weighted sum of the years
 dp <- du[, list(p_among_unsupp=sum((unsupp/unsupp_tot)*w)),by=c('LOC_BIRTH_POS','iter')]
 
 dp[, FROM_BPLACE:= factor(LOC_BIRTH_POS,
                           levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
-                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                          labels=c('Netherlands','W.Europe,\nN.America & Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
 
 dp <- dp[,
          list( q = quantile(p_among_unsupp, probs = c(0.5, 0.025, 0.975) ),
@@ -497,7 +453,7 @@ dp <- dp[,
          by = c('FROM_BPLACE')
 ]
 dp <- dcast.data.table(dp, FROM_BPLACE  ~stat, value.var = 'q')
-saveRDS(dp,file=paste0(outfile.base,'-bplace_unsuppressed_among_PLHIV_CIs','.RDS'))
+if(args$overwrite){saveRDS(dp,file=paste0(outfile.base,'-bplace_unsuppressed_among_PLHIV_CIs','.RDS'))}
 
 ## calculate flows/unsuppressed
 cat(" \n --------------------------------  calculate flows/unsuppressed -------------------------------- \n")
@@ -522,9 +478,17 @@ tmp <- po[, list(total = sum(value)), by = c('draw')]
 po <- merge(po, tmp, by = 'draw')
 po[, paf := value/total]
 
-saveRDS(po,file=paste0(outfile.base,'-adjusted_flows_samplingofcases_MCsamples','.RDS'))
+if(args$overwrite){saveRDS(po,file=paste0(outfile.base,'-adjusted_flows_samplingofcases_MCsamples','.RDS'))}
 
-po <- merge(po,dp,by=c('FROM_BPLACE'))
+po[, FROM_BPLACE:= factor(FROM_BPLACE,
+                          levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                          labels=c('Netherlands','W.Europe,\nN.America & Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
+
+# merge flows with contributions to unsuppressed
+po <- merge(po,subset(dp,select=c('FROM_BPLACE','M')),by=c('FROM_BPLACE'))
+setnames(po,'M','p_among_unsupp')
 po[, contr_unsupp:= paf/p_among_unsupp]
 po <- po[,
          list( q = quantile(contr_unsupp, probs = c(0.5, 0.025, 0.25, 0.75, 0.975) ),
@@ -536,16 +500,13 @@ po <- dcast.data.table(po, FROM_BPLACE~stat, value.var = 'q')
 setnames(po,'FROM_BPLACE','FROM_BPLACE')
 po[, TO_BPLACE:= 'Overall']
 
-po[, FROM_BPLACE:= factor(FROM_BPLACE,
-                          levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
-                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
 
-saveRDS(po,file=paste0(outfile.base,'-adjusted_flows_rel_unsupp_samplingofcases','.RDS'))
+if(args$overwrite){saveRDS(po,file=paste0(outfile.base,'-adjusted_flows_rel_unsupp_samplingofcases','.RDS'))}
 
 
 ## plot unsuppressed ----
 g_uns <- ggplot(subset(dp)) + geom_bar(aes(x=FROM_BPLACE,y=M,fill=FROM_BPLACE),stat='identity',position=position_dodge(width=0.9)) +
-  geom_errorbar(aes(x=FROM_BPLACE,ymin=CL, ymax=CU,fill=FROM_BPLACE),position=position_dodge(width=0.9), width=0.5, colour="black")	+
+  #geom_errorbar(aes(x=FROM_BPLACE,ymin=CL, ymax=CU,fill=FROM_BPLACE),position=position_dodge(width=0.9), width=0.5, colour="black")	+
   scale_fill_npg() +
   labs(x='Birthplace of\nincident case',fill='Birthplace of likely\ntransmitter', y='Composition of unsuppressed among PLHIV \nby place of birth \n(weighted average 2010-2021)') +
   theme_bw(base_size=28) +
@@ -555,8 +516,10 @@ g_uns <- ggplot(subset(dp)) + geom_bar(aes(x=FROM_BPLACE,y=M,fill=FROM_BPLACE),s
         axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9)) +#+ #,
   coord_cartesian(ylim = c(0,1)) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
-ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_unsuppressed_CIs.pdf'), g_uns, w = 23, h = 10)
-ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_unsuppressed_CIs.png'), g_uns, w = 16, h = 10)
+if(args$overwrite){
+  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_unsuppressed.pdf'), g_uns, w = 23, h = 10)
+  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_unsuppressed.png'), g_uns, w = 16, h = 10)
+}
 
 ## plot ratio unsuppressed ----
 
@@ -572,26 +535,46 @@ g3 <- ggplot(subset(po,TO_BPLACE=='Overall')) +
   theme(legend.pos='none',
         axis.title.x = element_blank(),
         axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9)) #+ #,
-ggsave(file = paste0(outfile.base,'-rep_',replicate,'-flows_frombplace_contributions_rel_unsuppressed_contributions.pdf'), g_ratio, w = 23, h = 10)
-ggsave(file = paste0(outfile.base,'-rep_',replicate,'-flows_frombplace_contributions_rel_unsuppressed_contributions.png'), g_ratio, w = 16, h = 10)
+if(args$overwrite){
+  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-flows_frombplace_contributions_rel_unsuppressed_contributions.pdf'), g3, w = 23, h = 10)
+  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-flows_frombplace_contributions_rel_unsuppressed_contributions.png'), g3, w = 16, h = 10)
+}
 
 ## Make panel plot ----
 
-g <- ggarrange(g_prev+theme_bw(base_size=11) + labs(y='\nContribution to prevalence\n2010-2021') + theme(legend.pos='none',
+g <- ggarrange(g1+theme_bw(base_size=11) + labs(y='\nContribution to transmissions') +
+                 theme(legend.pos='none',axis.title.x = element_blank(),axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+               g_prev+theme_bw(base_size=11) + labs(y='\nContribution to prevalence\n2010-2021') + theme(legend.pos='none',
                                                          axis.title.x = element_blank(),axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
-                      g_uns+theme_bw(base_size=11) + labs(y='\nContribution to PLHIV\nwith an unsuppressed virus') + theme(legend.pos='none',
+               g_uns+theme_bw(base_size=11) + labs(y='\nContribution to PLHIV\nwith an unsuppressed virus') + theme(legend.pos='none',
                                                            axis.title.x = element_blank(),axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
-                      g1+theme_bw(base_size=11) + labs(y='\nContribution to transmissions') + theme(legend.pos='none',
-                                                         axis.title.x = element_blank(),axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
-                      g2+theme_bw(base_size=11) + labs(y='\nContribution to transmissions\n relative to contribution to prevalence\n2010-2021') + theme(legend.pos='none',
+               NULL,
+               g2+theme_bw(base_size=11) + labs(y='\nContribution to transmissions\n relative to contribution to prevalence\n2010-2021') + theme(legend.pos='none',
                                                         axis.title.x = element_blank(),axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
-                      g3+theme_bw(base_size=11) + labs(y='\nContribution to transmissions\nrelative to contribution towards PLHIV\nwith an unsuppressed virus') + theme(legend.pos='none',
+               g3+theme_bw(base_size=11) + labs(y='\nContribution to transmissions\nrelative to contribution towards PLHIV\nwith an unsuppressed virus') + theme(legend.pos='none',
                                                         axis.title.x = element_blank(),axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
-                      ncol=3,nrow=2,align='v',labels='AUTO',font.label=list(size=14))
+               ncol=3,nrow=2,align='v',labels=c('A','B','C','','D','E'),font.label=list(size=14))
+
+
+g_l <- ggarrange(g1+theme_bw(base_size=11) + labs(y='\nContribution to transmissions') +
+  theme(legend.pos='none',axis.title.x = element_blank(),axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+  labels=c('A'),font.label=list(size=14))
+g_r <- ggarrange(g_prev+theme_bw(base_size=11) + labs(y='\nContribution to prevalence\n2010-2021') + theme(legend.pos='none',
+                                                                                                          axis.title.x = element_blank(),axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+                g_uns+theme_bw(base_size=11) + labs(y='\nContribution to PLHIV\nwith an unsuppressed virus') + theme(legend.pos='none',
+                                                                                                                     axis.title.x = element_blank(),axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+                g2+theme_bw(base_size=11) + labs(y='\nContribution to transmissions\n relative to contribution to prevalence\n2010-2021') + theme(legend.pos='none',
+                                                                                                                                                  axis.title.x = element_blank(),axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+                g3+theme_bw(base_size=11) + labs(y='\nContribution to transmissions\nrelative to contribution towards PLHIV\nwith an unsuppressed virus') + theme(legend.pos='none',
+                                                                                                                                                                  axis.title.x = element_blank(),axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+                ncol=2,nrow=2,align='v',labels=c('B','C','D','E'),font.label=list(size=14))
+g <- ggarrange(g_l,g_r,ncol=2,align='hv',widths=c(0.35,0.65))
 
 g_bplace <- annotate_figure(g,bottom = text_grob("Birthplace of incident case",size=11))
-ggsave(file = paste0(outfile.base,'-prev_uns_flows_frombplace_contributions_panel.pdf'),
+if(args$overwrite){
+  ggsave(file = paste0(outfile.base,'-prev_uns_flows_frombplace_contributions_panel_new_labs.pdf'),
        g_bplace, w = 11, h = 7)
-ggsave(file = paste0(outfile.base,'-prev_uns_flows_frombplace_contributions_panel.png'),
+  ggsave(file = paste0(outfile.base,'-prev_uns_flows_frombplace_contributions_panel_new_labs.png'),
        g_bplace, w = 11, h = 7)
+}
 

@@ -250,6 +250,12 @@ po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
             by.x=c('TO_BPLACE','YEAR_OF_INF_EST'),by.y=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'))
 po[, YEAR_GP:= cut(YEAR_OF_INF_EST, breaks=c(2010,2012,2014,2016,2018,2020,2022),
                    labels=c('2010-2011','2012-2013','2014-2015','2016-2017','2018-2019','2020-2021'),include.lowest=T,right=F)]
+# print sample sizes
+cat('\nNumber of incident cases per 2-year interval:\n')
+po[, list(N_cases=length(unique(TO_SEQUENCE_ID))),by='YEAR_GP']
+cat('\nNumber of pairs per 2-year interval:\n')
+po[, list(N_pairs=length(unique(PAIR_ID))),by='YEAR_GP']
+
 po <- po[, list(value = sum(value/psi)), by = c('draw','FROM_MIGRANT','YEAR_GP')]
 tmp <- po[, list(total = sum(value)), by = c('draw','YEAR_GP')]
 po <- merge(po, tmp, by = c('draw','YEAR_GP'))

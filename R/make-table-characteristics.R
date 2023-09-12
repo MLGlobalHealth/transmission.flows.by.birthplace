@@ -232,6 +232,8 @@ tmp <- dcast(tmp,MG~ST_B,value.var='N')
 tmp[, B_pct:= B/(B+`Non-B`)*100]
 tmp[, NonB_pct:= `Non-B`/(B+`Non-B`)*100]
 
+saveRDS(tmp,file=paste0(outfile.base,'-bplace_subtype_cases.RDS'))
+
 ## plot sampling prob
 
 spy <- readRDS(file=paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS'))
