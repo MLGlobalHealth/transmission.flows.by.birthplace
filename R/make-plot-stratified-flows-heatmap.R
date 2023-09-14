@@ -154,10 +154,14 @@ po <- po[,
 po <- dcast.data.table(po, FROM_BPLACE + TO_BPLACE ~stat, value.var = 'q')
 po[, FROM_BPLACE:= factor(FROM_BPLACE,
                           levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
-                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                          labels=c('Netherlands','W.Europe,\nN.America & Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
 po[, TO_BPLACE:= factor(TO_BPLACE,
                         levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
-                                 'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+                                 'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                        labels=c('Netherlands','W.Europe,\nN.America & Oceania','Suriname &\nDutch Caribbean',
+                                 'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
 
 po[, L:= paste0(round(M*100,1),'% [',round(CL*100,1),'-',round(CU*100,1),'%]')]
 saveRDS(po,file=paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_bplacecase_bplacesrc','.RDS'))
@@ -212,10 +216,14 @@ po <- po[,
 po <- dcast.data.table(po, FROM_BPLACE + TO_BPLACE ~stat, value.var = 'q')
 po[, FROM_BPLACE:= factor(FROM_BPLACE,
                           levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
-                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                          labels=c('Netherlands','W.Europe,\nN.America & Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
 po[, TO_BPLACE:= factor(TO_BPLACE,
                         levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
-                                 'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+                                 'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                        labels=c('Netherlands','W.Europe,\nN.America & Oceania','Suriname &\nDutch Caribbean',
+                                 'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
 
 po[, L:= paste0(round(M*100,1),'% [',round(CL*100,1),'-',round(CU*100,1),'%]')]
 
@@ -230,6 +238,17 @@ po[is.na(M), M:=0]
 #po <- merge(po,tmp,by='TO_BPLACE')
 #tmp <- do[, list(N_FROM=length(unique(FROM_SEQUENCE_ID))),by=c('FROM_BPLACE')]
 #po <- merge(po,tmp,by='FROM_BPLACE')
+
+do[, FROM_BPLACE:= factor(FROM_BPLACE,
+                          levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                          labels=c('Netherlands','W.Europe,\nN.America & Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
+do[, TO_BPLACE:= factor(TO_BPLACE,
+                        levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                                 'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                        labels=c('Netherlands','W.Europe,\nN.America & Oceania','Suriname &\nDutch Caribbean',
+                                 'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
 
 breaks_to <- do[, list(N_TO=length(unique(TO_SEQUENCE_ID))),by=c('TO_BPLACE')]
 breaks_from <- do[, list(N_FROM=length(unique(FROM_SEQUENCE_ID))),by=c('FROM_BPLACE')]
@@ -299,7 +318,7 @@ g_srcs <- ggplot(subset(po,TO_BPLACE=='Overall')) +
                           NULL,widths=c(0.95,0.05)),g_srcs + theme_bw(base_size=9),
                 ncol=1,nrow=3,align='v',labels='AUTO',font.label=list(size=12),heights=c(0.33,0.42,0.25))
 
-ggsave(file = paste0(outfile.base,'-stratified_flows_heatmap_temporal.pdf'),
+ggsave(file = paste0(outfile.base,'-stratified_flows_heatmap_temporal_labs.pdf'),
        g, w = 7, h = 11)
-ggsave(file = paste0(outfile.base,'-stratified_flows_heatmap_temporal.png'),
+ggsave(file = paste0(outfile.base,'-stratified_flows_heatmap_temporal_labs.png'),
        g, w = 7, h = 11)
