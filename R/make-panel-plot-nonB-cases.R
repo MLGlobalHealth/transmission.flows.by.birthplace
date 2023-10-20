@@ -183,7 +183,7 @@ ds[, BPLACE:= factor(BPLACE,
                             levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
                                      'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
 
-g_cases_bplace <- ggplot(subset(ds)) +
+g_cases_bplace <- ggplot(subset(ds,YEAR_OF_INF_EST>=1996)) +
   geom_bar(aes(x=YEAR_OF_INF_EST,y=N_inf,fill=BPLACE),size=0.3,stat="identity",position="stack") +
   scale_fill_npg() +
   #scale_colour_manual(values='black') +
@@ -230,11 +230,11 @@ pal_st <- c('gray45',pal_aaas('default')(9)[c(6,1)])
 pal_st <- c('gray45',pal_lancet('lanonc')(9)[c(2,1)])
 pal_st <- c(pal_jama('default')(7)[c(4,3)])
 
-g_cases <- ggplot(subset(ds)) +
+g_cases <- ggplot(subset(ds,YEAR_OF_INF_EST>=1996)) +
   #geom_bar(aes(x=YEAR_OF_INF_EST,y=value,col=ST),fill='white',stat="identity",position="stack") +
   #geom_bar(data=subset(ds,ST!='Not diagnosed and/or\nnot sequenced'),aes(x=YEAR_OF_INF_EST,y=value,fill=ST),color='black',stat="identity",position="stack") +
-  geom_bar(data=subset(ds,ST=='Not diagnosed\nand/or\nnot sequenced'),aes(x=YEAR_OF_INF_EST,y=value,col=cases),fill='white',size=0.3,stat="identity") +
-  geom_bar(data=subset(ds,ST!='Not diagnosed\nand/or\nnot sequenced'),aes(x=YEAR_OF_INF_EST,y=value,fill=ST),col='black',size=0.3,stat="identity",position="stack") +
+  geom_bar(data=subset(ds,ST=='Not diagnosed\nand/or\nnot sequenced' & YEAR_OF_INF_EST>=1996),aes(x=YEAR_OF_INF_EST,y=value,col=cases),fill='white',size=0.3,stat="identity") +
+  geom_bar(data=subset(ds,ST!='Not diagnosed\nand/or\nnot sequenced' & YEAR_OF_INF_EST>=1996),aes(x=YEAR_OF_INF_EST,y=value,fill=ST),col='black',size=0.3,stat="identity",position="stack") +
   facet_grid(MB~.) +
   #scale_fill_aaas() +
   #scale_colour_manual(values=c('gray45',pal_st)) +
@@ -308,7 +308,7 @@ tmp[, assumption:= factor(assumption,levels=c('prop_bplace','allb'),labels=c('Su
 # plot prop of non-Bs
 #pal <- pal_npg('nrc')(4)[c(3,4)]
 pal <- pal_npg('nrc')(4)[c(1,4)]
-g_props <- ggplot(subset(tmp,SUBTYPE=='Non-B')) +
+g_props <- ggplot(subset(tmp,SUBTYPE=='Non-B' & YEAR_OF_INF_EST>=1996)) +
   geom_errorbar(aes(x=YEAR_OF_INF_EST,ymin=CL, ymax=CU,fill=MB),position=position_dodge(width=0.9),width=0.5, colour="black")	+
   geom_point(aes(x=YEAR_OF_INF_EST,y=p,colour=MB),position=position_dodge(width=0.9)) +
   facet_grid(MB~assumption) +

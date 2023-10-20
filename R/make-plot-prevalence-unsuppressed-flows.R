@@ -66,7 +66,7 @@ cat(" \n --------------------------------  with arguments ----------------------
 
 infile.seq <-	file.path(args_dir$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
 infile.bas <- file.path(args_dir$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
-infile.meta <- file.path(args_dir$indir, args$analysis, 'misc', '220713_sequence_labels.rda')
+infile.meta <- file.path(args_dir$indir, args_dir$analysis, 'misc', '220713_sequence_labels.rda')
 
 ## read stanin
 cat('\nReading Stan input data...')
@@ -570,7 +570,7 @@ g_r <- ggarrange(g_prev+theme_bw(base_size=11) + labs(y='\nContribution to preva
                 ncol=2,nrow=2,align='v',labels=c('B','C','D','E'),font.label=list(size=14))
 g <- ggarrange(g_l,g_r,ncol=2,align='hv',widths=c(0.35,0.65))
 
-g_bplace <- annotate_figure(g,bottom = text_grob("Birthplace of incident case",size=11))
+g_bplace <- annotate_figure(g,bottom = text_grob("Birthplace of source",size=11))
 if(args$overwrite){
   ggsave(file = paste0(outfile.base,'-prev_uns_flows_frombplace_contributions_panel_new_labs.pdf'),
        g_bplace, w = 11, h = 7)

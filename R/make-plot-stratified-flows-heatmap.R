@@ -70,10 +70,10 @@ dind <- data.table(dind)
 
 ## read stanin
 cat('\nReading Stan input data...')
-infile.stanin <- list.files(args$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
+infile.stanin <- list.files(args_dir$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
 stopifnot(length(infile.stanin)>0)
 stopifnot(length(infile.stanin)<=1)
-tmp <- load(file.path(args$outdir, infile.stanin))
+tmp <- load(file.path(args_dir$outdir, infile.stanin))
 stopifnot(c('args','stan_data')%in%tmp)
 args$analysis = 'analysis_220713'
 args$indir = '~/Box\ Sync/Roadmap'
@@ -184,6 +184,10 @@ ggsave(file = paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_contribut
 ggsave(file = paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_contributions.png'),
        g, w = 11, h = 8)
 
+
+# make table for paper
+tab <- dcast(po,FROM_BPLACE~TO_BPLACE,value.var='L')
+saveRDS(tab,file=paste0(outfile.base,'-table_stratified_flows.RDS'))
 
 ## get flows from group a to group b out of total flows ----
 cat(" \n --------------------------------  plot flows from group a to group b out of total flows -------------------------------- \n")
