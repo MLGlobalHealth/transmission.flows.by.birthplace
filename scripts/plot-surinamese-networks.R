@@ -118,43 +118,7 @@ po <- po[,
 po <- dcast.data.table(po, FROM_SEQUENCE_ID+TO_SEQUENCE_ID~.,value.var='M')
 setnames(po,'.','M')
 
-## plot links between everyone in same cluster ----
-sg_all <- copy(do)
-sg <- subset(sg_all,select=c('FROM_SEQUENCE_ID','TO_SEQUENCE_ID','TO_CLUSTER_NUMBER','FROM_BPLACE','TO_BPLACE'),TO_BPLACE=='Suriname &\nDutch Caribbean')
-tmp1 <- subset(sg,select=c('FROM_SEQUENCE_ID','TO_CLUSTER_NUMBER','FROM_BPLACE'))
-tmp2 <- subset(sg,select=c('TO_SEQUENCE_ID','TO_CLUSTER_NUMBER','TO_BPLACE'))
-setnames(tmp1,c('FROM_SEQUENCE_ID','TO_CLUSTER_NUMBER','FROM_BPLACE'),c('SEQUENCE_ID','CLU','BPLACE'))
-setnames(tmp2,c('TO_SEQUENCE_ID','TO_CLUSTER_NUMBER','TO_BPLACE'),c('SEQUENCE_ID','CLU','BPLACE'))
-sg <- rbind(tmp1,tmp2)
-
-network <- graph_from_data_frame(d=sg, directed=T)
-
-# change colour of vertices
-col = pal_npg("nrc")(5)
-V(network)$cluster<- 'grey50'
-V(network)$cluster[which(V(network)$name %in% sg$SEQUENCE_ID[sg$BPLACE=='Suriname &\nDutch Caribbean'])]<-col[4]
-V(network)$cluster[which(V(network)$name %in% sg$SEQUENCE_ID[sg$BPLACE=='Netherlands'])]<-col[1]
-V(network)$color=V(network)$cluster
-
-
-colrs <- c(col[1],col[2])
-l <- layout_nicely(network)
-
-pal <- c('grey50',col[1],col[4])
-pdf(file=file.path(out.dir,'networks_surinamese.pdf'),h=30,w=30)
-plot(network, layout=layout_nicely, vertex.size=3, edge.color = "grey50",
-     edge.arrow.size=1, edge.size=3,
-     vertex.label=NA)
-legend(x=-1, y=-0.93, c("Other","Born in Suriname",
-                        "Born in Netherlands"), pch=21,
-       pt.bg=pal, pt.cex=4, cex=3.5, bty="n", ncol=1)
-dev.off()
-
-################
-
-## plot linked PAIRS only ----
-
-# load posterior probs of being a pair
+## plot linked pairs ----
 
 sg_all <- copy(do)
 
@@ -215,10 +179,11 @@ E(network_clu)$width <- rescale(exp(E(network_clu)$gamma_dens),to=c(0,30)) # usi
 
 
 colrs <- c(col[1],col[2])
-l <- layout_nicely(network)
+#l <- layout_nicely(network)
 
 pal <- c('grey50',col[3],col[1])
-pdf(file=file.path(out.dir,'networks_surinamese_v2_widths_gammadens_clu.pdf'),h=30,w=30)
+#pdf(file=file.path(out.dir,'networks_surinamese_v2_widths_gammadens_clu.pdf'),h=30,w=30)
+pdf(file=file.path(out.dir,'networks_surinamese_v2_widths_tpairprob_unadjusted_clu.pdf'),h=30,w=30)
 #png(file=file.path(out.dir,'networks_surinamese_v2_widths.png'),h=30,w=30)
 plot(network_clu, layout=layout_nicely, vertex.size=3,
      #edge.color = E(network)$newcolor,
@@ -247,6 +212,8 @@ tmp <- subset(tmp,sum_w>0)
 
 ## do the same using gamma dens as weights
 
+po <- readRDS(file=file.path(out.dir,'gamma_dens_med.RDS'))
+
 all_w <- subset(sg_all,select=c('FROM_SEQUENCE_ID','TO_SEQUENCE_ID','TO_CLUSTER_NUMBER','FROM_BPLACE','TO_BPLACE'))
 all_w <- merge(all_w,po,by=c('FROM_SEQUENCE_ID','TO_SEQUENCE_ID'),all.x=T)
 
@@ -255,17 +222,199 @@ tmp <- subset(tmp,sum_w>0)
 
 # need to divide by # individuals otherwise Dutch --> Dutch is always the biggest?
 
-ids_eth1 <- subset(do,select=c('TO_SEQUENCE_ID','TO_BPLACE'))
-ids_eth2 <- subset(do,select=c('FROM_SEQUENCE_ID','FROM_BPLACE'))
-setnames(ids_eth1,c('TO_SEQUENCE_ID','TO_BPLACE'),c('SEQUENCE_ID','BPLACE'))
-setnames(ids_eth2,c('FROM_SEQUENCE_ID','FROM_BPLACE'),c('SEQUENCE_ID','BPLACE'))
+ids_eth1 <- subset(do,select=c('TO_SEQUENCE_ID','TO_BPLACE','TO_CLUSTER_NUMBER'))
+ids_eth2 <- subset(do,select=c('FROM_SEQUENCE_ID','FROM_BPLACE','FROM_CLUSTER_NUMBER'))
+setnames(ids_eth1,c('TO_SEQUENCE_ID','TO_BPLACE','TO_CLUSTER_NUMBER'),c('SEQUENCE_ID','BPLACE','CLUSTER_NUMBER'))
+setnames(ids_eth2,c('FROM_SEQUENCE_ID','FROM_BPLACE','FROM_CLUSTER_NUMBER'),c('SEQUENCE_ID','BPLACE','CLUSTER_NUMBER'))
 ids_eth <- unique(rbind(ids_eth1,ids_eth2))
 
 N_eth <- ids_eth[, list(N=length(unique(SEQUENCE_ID))),by='BPLACE']
+N_eth_clu <- ids_eth[, list(N=length(unique(SEQUENCE_ID))),by=c('BPLACE','CLUSTER_NUMBER')]
 
 tmp <- merge(tmp,N_eth,by.x='FROM_BPLACE',by.y='BPLACE')
 tmp[, rel_sum_weights:= sum_w/N]
 
 # Dutch --> Dutch still the highest, followed by Suriname
+
+
+
+## plot for Dutch --> Dutch
+
+sg <- subset(sg_all,select=c('FROM_SEQUENCE_ID','TO_SEQUENCE_ID','TO_CLUSTER_NUMBER','FROM_BPLACE','TO_BPLACE'),TO_BPLACE=='Netherlands')# & FROM_BPLACE=='Netherlands')
+sg2 <- merge(sg,po,by=c('FROM_SEQUENCE_ID','TO_SEQUENCE_ID'),all.x=T)
+
+network <- graph_from_data_frame(d=sg2, directed=T)
+
+# change colour of vertices
+col = pal_npg("nrc")(5)
+V(network)$cluster<- 'grey50'
+V(network)$cluster[which(V(network)$name %in% sg$TO_SEQUENCE_ID[sg$TO_BPLACE=='Netherlands'])]<-col[1]
+V(network)$cluster[which(V(network)$name %in% sg$FROM_SEQUENCE_ID[sg$FROM_BPLACE=='Netherlands'])]<-col[1]
+V(network)$color=V(network)$cluster
+
+#E(network)$width <- E(network)$M*20 # using tpairprob
+E(network)$width <- rescale(exp(E(network)$gamma_dens),to=c(0,30)) # using gammdens
+#E(network)$newcolor <- E(network)$M
+
+
+colrs <- c(col[1],col[2])
+l <- layout_nicely(network)
+
+pal <- c('grey50',col[1])
+#pdf(file=file.path(out.dir,'networks_surinamese_v2_widths_labs.pdf'),h=30,w=30)
+pdf(file=file.path(out.dir,'networks_Dutchrecipients_v2_widths_gammadens.pdf'),h=30,w=30)
+plot(network, layout=layout_nicely, vertex.size=3,
+     #edge.color = E(network)$newcolor,
+     edge.color = "grey50",
+     edge.arrow.size=1, #edge.size=3,
+     vertex.label.cex = 2 ,
+     edge.width= E(network)$width,
+     vertex.label=NA)
+legend(x=-1, y=-0.93, c("Other","Born in Netherlands"
+                        ), pch=21,
+       pt.bg=pal,
+       pt.cex=4, cex=3.5, bty="n", ncol=1)
+dev.off()
+
+
+# plot large clusters separately
+
+size <- sg[, list(N=length(TO_SEQUENCE_ID[FROM_BPLACE=='Netherlands' | TO_BPLACE=='Netherlands'])),
+                  by='TO_CLUSTER_NUMBER']
+size <- size[order(-N),]
+
+for(i in 1:15){
+  network <- graph_from_data_frame(d=subset(sg2,TO_CLUSTER_NUMBER==size[i,TO_CLUSTER_NUMBER]), directed=T)
+
+  # change colour of vertices
+  col = pal_npg("nrc")(5)
+  V(network)$cluster<- 'grey50'
+  V(network)$cluster[which(V(network)$name %in% sg$TO_SEQUENCE_ID[sg$TO_BPLACE=='Netherlands'])]<-col[1]
+  V(network)$cluster[which(V(network)$name %in% sg$FROM_SEQUENCE_ID[sg$FROM_BPLACE=='Netherlands'])]<-col[1]
+  V(network)$color=V(network)$cluster
+
+  #E(network)$width <- E(network)$M*20 # using tpairprob
+  E(network)$width <- rescale(exp(E(network)$gamma_dens),to=c(0,30)) # using gammdens
+  #E(network)$newcolor <- E(network)$M
+
+
+  colrs <- c(col[1],col[2])
+  l <- layout_nicely(network)
+
+  pal <- c('grey50',col[1])
+  #pdf(file=file.path(out.dir,'networks_surinamese_v2_widths_labs.pdf'),h=30,w=30)
+  pdf(file=file.path(out.dir,paste0('networks_Dutchrecipients_v2_widths_gammadens_',size[i,TO_CLUSTER_NUMBER],'.pdf')),h=30,w=30)
+  plot(network, layout=layout_nicely, vertex.size=3,
+       #edge.color = E(network)$newcolor,
+       edge.color = "grey50",
+       edge.arrow.size=1, #edge.size=3,
+       vertex.label.cex = 2 ,
+       edge.width= E(network)$width,
+       vertex.label=NA)
+  legend(x=-1, y=-0.93, c("Other","Born in Netherlands"
+  ), pch=21,
+  pt.bg=pal,
+  pt.cex=4, cex=3.5, bty="n", ncol=1)
+  dev.off()
+}
+
+# all bplaces ----
+
+for(i in unique(sg_all$TO_BPLACE)){
+
+  sg <- subset(sg_all,select=c('FROM_SEQUENCE_ID','TO_SEQUENCE_ID','TO_CLUSTER_NUMBER','FROM_BPLACE','TO_BPLACE'),TO_BPLACE==i & FROM_BPLACE==i)# & FROM_BPLACE=='Netherlands')
+  sg2 <- merge(sg,po,by=c('FROM_SEQUENCE_ID','TO_SEQUENCE_ID'),all.x=T)
+
+  network <- graph_from_data_frame(d=sg2, directed=T)
+
+  # change colour of vertices
+  col = pal_npg("nrc")(5)
+  V(network)$cluster<- 'grey50'
+  V(network)$cluster[which(V(network)$name %in% sg$TO_SEQUENCE_ID[sg$TO_BPLACE==i])]<-col[1]
+  V(network)$cluster[which(V(network)$name %in% sg$FROM_SEQUENCE_ID[sg$FROM_BPLACE==i])]<-col[1]
+  V(network)$color=V(network)$cluster
+
+  #E(network)$width <- E(network)$M*20 # using tpairprob
+  E(network)$width <- rescale(exp(E(network)$gamma_dens),to=c(0,30)) # using gammdens
+  #E(network)$newcolor <- E(network)$M
+
+
+  colrs <- c(col[1],col[2])
+  l <- layout_nicely(network)
+
+  pal <- c('grey50',col[1])
+  #pdf(file=file.path(out.dir,'networks_surinamese_v2_widths_labs.pdf'),h=30,w=30)
+  pdf(file=file.path(out.dir,paste0('assortative_networks_widths_gammadens_',i,'_recipients.pdf')),h=30,w=30)
+  plot(network, layout=layout_nicely, vertex.size=3,
+       #edge.color = E(network)$newcolor,
+       edge.color = "grey50",
+       edge.arrow.size=1, #edge.size=3,
+       vertex.label.cex = 2 ,
+       edge.width= E(network)$width,
+       vertex.label=NA)
+  legend(x=-1, y=-0.93, c("Other",paste0("Born in ",i)
+  ), pch=21,
+  pt.bg=pal,
+  pt.cex=4, cex=3.5, bty="n", ncol=1)
+  dev.off()
+}
+
+# plot weights ----
+
+# large subgraphs (>4 MSM from same bplace) on x-axis, weights for links between same ethnicity on y axis
+
+sg_w <- merge(sg_all,po,by=c('FROM_SEQUENCE_ID','TO_SEQUENCE_ID'),all.x=T)
+
+sg_size <- sg_w[, list(size=length(unique(TO_SEQUENCE_ID[FROM_BPLACE==TO_BPLACE]))),
+                by=c('TO_CLUSTER_NUMBER','TO_BPLACE')]
+sg_w <- merge(sg_w,sg_size,by=c('TO_CLUSTER_NUMBER','TO_BPLACE'))
+
+
+mycols <- c(pal_npg("nrc")(9)[c(2,3,4,5,6,7)])
+g <- ggplot(subset(sg_w,FROM_BPLACE==TO_BPLACE & TO_BPLACE!='Netherlands' & size>=4)) +
+  geom_point(aes(x=TO_BPLACE,y=exp(gamma_dens),col=TO_BPLACE),position = "jitter") +
+  scale_color_manual(values=mycols) +
+  #scale_y_log10() +
+  labs(x='birthplace of recipient',y='gamma density',col='') +
+  theme_bw() +
+  theme(legend.position='none')
+ggsave(file=file.path(out.dir,'large_subgraphs_weights.png'),g,w=7,h=4)
+
+
+# sum the weights per subgraph and divide by Number of sources
+
+# use size including sources and recipients
+
+sg_w <- merge(sg_w,N_eth_clu,by.x=c('TO_CLUSTER_NUMBER','TO_BPLACE'),by.y=c('CLUSTER_NUMBER','BPLACE'))
+
+sumw <- sg_w[FROM_BPLACE==TO_BPLACE & TO_BPLACE!='Netherlands' & N>=5, list(sumw = sum(exp(gamma_dens)),
+                                          N_src = length(unique(FROM_SEQUENCE_ID)),
+                                          N_tot=N),by=c('TO_CLUSTER_NUMBER','TO_SEQUENCE_ID','TO_BPLACE')]
+meanw <- sumw[, list(meanw = sumw/N_tot),by=c('TO_CLUSTER_NUMBER','TO_SEQUENCE_ID','TO_BPLACE')]
+
+mean_bplace <- meanw[, list(meanbp = mean(meanw)),by=c('TO_CLUSTER_NUMBER','TO_BPLACE')]
+
+g <- ggplot(subset(mean_bplace)) +
+  geom_point(aes(x=TO_BPLACE,y=meanbp,col=TO_BPLACE)) +#,position = "jitter") +
+  scale_color_manual(values=mycols) +
+  #scale_y_log10() +
+  labs(x='birthplace of recipient',y='mean standardised weights',col='') +
+  theme_bw() +
+  theme(legend.position='none')
+ggsave(file=file.path(out.dir,'large_subgraphs_ge5_rel_weights_mean.png'),g,w=7,h=4)
+ggsave(file=file.path(out.dir,'large_subgraphs_ge5_rel_weights_mean.pdf'),g,w=7,h=4)
+
+
+## plot distribution of weights between same ethnicities ----
+
+all_w[, same_eth:= 0]
+all_w[FROM_BPLACE==TO_BPLACE, same_eth:= 1]
+g <- ggplot(subset(all_w,same_eth==1)) + geom_histogram(aes(x=exp(gamma_dens),fill=FROM_BPLACE)) +
+  facet_grid(FROM_BPLACE~.,scales='free') +
+  #scale_fill_manual(values=mycols) +
+  labs(x='gamma dens',y='count',fill='ethnicity') +
+  scale_fill_npg() +
+  theme_bw()
+ggsave(file=file.path(out.dir,'distribution_weights_same_ethnicity_links.png'),g,w=6,h=7)
 
 

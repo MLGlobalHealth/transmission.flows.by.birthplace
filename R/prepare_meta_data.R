@@ -18,8 +18,8 @@ infile.seq <-	file.path(args$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331
 infile.georeg <- file.path('/Users/alexb/Box Sync/Roadmap','misc','NEWGEO_220713.csv')
 
 cat('\n Extract subgraph taxa\n')
-#dsubgraphtaxa <- extract_subgraphs(indir.phsc)
-load(indir.phsc)
+dsubgraphtaxa <- extract_subgraphs(indir.phsc)
+#load(indir.phsc)
 
 cat("\nRead patient metadata \n")
 load(infile.seq)

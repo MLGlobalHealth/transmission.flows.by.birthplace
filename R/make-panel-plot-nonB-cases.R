@@ -330,8 +330,8 @@ g <- plot_grid(plot_grid(g_cases_bplace,g_cases,nrow=1,align='h',axis='t',rel_wi
 
 
 
-ggsave(file=paste0(outfile.base,'-cases_birthplace_subtypes_birthplace_prop_nonB_panel.pdf'), g, w = 11, h = 10)
-ggsave(file=paste0(outfile.base,'-cases_birthplace_subtypes_birthplace_prop_nonB_panel.png'), g, w = 11, h = 10)
+ggsave(file=paste0(outfile.base,'-cases_birthplace_subtypes_birthplace_prop_nonB_panel_1996-2021.pdf'), g, w = 11, h = 10)
+ggsave(file=paste0(outfile.base,'-cases_birthplace_subtypes_birthplace_prop_nonB_panel_1996-2021.png'), g, w = 11, h = 10)
 
 
 

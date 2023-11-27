@@ -255,6 +255,8 @@ ggplot(subset(dl, PATIENT %in% unique(dl$PATIENT)[1:10])) +
   theme(legend.position="bottom")
 ggsave(file=file.path(out.dir,'viral_load_trajectories_pred_10pts.png'),w=25,h=12)
 
+saveRDS(dl,file=file.path(out.dir,'predicted_viral_loads.RDS'))
+
 # flag patients virally suppressed by putative infection date of recipient
 tmp <- data.table(unique(subset(dl,select=c('PATIENT','RNA_D','pred.response'))))
 tmp[pred.response<=200, supp:=1] # updated from 100 based on SHM report defn of suppression

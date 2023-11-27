@@ -11,19 +11,21 @@ require(cmdstanr)
 
 # setup args ----
 args <- list(
-  source_dir = '~/Documents/GitHub/source.attr.with.infection.time',
+  source_dir = '~/Documents/GitHub/transmission.flows.by.birthplace',
   indir = '~/Box\ Sync/Roadmap/source_attribution',
   outdir = 'out_Amsterdam',
   #pairs_dir = 'agegps_updated_criteria_210216_MSM-2010_2022',
   #job_tag = 'agegps_TE16_MSM-2010_2022',
-  pairs_dir = 'agegps_sensanalysis_210216_MSM-2010_2022',
-  job_tag = 'agegps_sensanalysis_210216_MSM',
+  #pairs_dir = 'agegps_sensanalysis_210216_MSM-2010_2022',
+  pairs_dir = 'update_blace_230714_MSM-2010_2021_no_timeelapsed_exclusions',
+  job_tag = 'update_blace_230714_MSM-2010_2021_no_timeelapsed_exclusions',
+  #job_tag = 'agegps_sensanalysis_210216_MSM',
   #job_tag = 'agegps_sensanalysis_agesrcrec_210216_MSM',
   trsm = 'MSM',
   clock_model = '/Users/alexb/Box Sync/Roadmap/source_attribution/molecular_clock/hierarchical',
-  stanModelFile = 'mm_sigHierG_bgUnif_piVanilla_220408b', # vanilla model
+  #stanModelFile = 'mm_sigHierG_bgUnif_piVanilla_220408b', # vanilla model
   #stanModelFile = 'mm_sigHierG_bgUnif_piReg_230111b', # covariate model
-  #stanModelFile = 'mm_bgUnif_piGP_221027b', # 2D HSGP model
+  stanModelFile = 'mm_bgUnif_piGP_221027b', # 2D HSGP model
   #stanModelFile = 'mm_bgUnif_pi1DGP_Ams_230224', # 1D HSGP model
   #stanModelFile = 'mm_bgUnif_pi1DGP_Ams_230224b', # 2 * 1D HSGP model
   hmc_stepsize = 0.02,
@@ -426,7 +428,7 @@ for(a in 1:stan_data$S){
   stan_data$idx_rec[a,] <- as.numeric(do$TO_AGE_GP_2==a)
 }
 
-if(grepl('_agesrcrec_',args$job_tag)){
+if(grepl('_agesrcrec_',args$job_tag) | args$stanModelFile=='mm_bgUnif_piGP_221027b'){
   tmp <- data.table(FROM_AGE_STD = sort(unique(age_idx_std)))
   tmp[, FROM_AGE_INT := seq_len(nrow(tmp))]
   do <- merge(do,tmp,by='FROM_AGE_INT',all.x=T)
@@ -434,7 +436,7 @@ if(grepl('_agesrcrec_',args$job_tag)){
   stan_data$ux_src = tmp$FROM_AGE_STD
   stan_data$Nux_src = nrow(tmp)
   stan_data$x_2_ux_src = do$FROM_AGE_INT
-  
+
   tmp <- data.table(TO_AGE_STD = sort(unique(age_idx_std)))
   tmp[, TO_AGE_INT := seq_len(nrow(tmp))]
   do <- merge(do,tmp,by='TO_AGE_INT',all.x=T)
@@ -442,7 +444,7 @@ if(grepl('_agesrcrec_',args$job_tag)){
   stan_data$ux_rec = tmp$TO_AGE_STD
   stan_data$Nux_rec = nrow(tmp)
   stan_data$x_2_ux_rec = do$TO_AGE_INT
-  
+
   stan_data$L <- rep(args$B*max(do$FROM_AGE_STD,do$FROM_AGE_STD),2)
   stan_data$D <- 2
 }else if(grepl('_agerec_',args$stanModelFile)){
@@ -509,7 +511,7 @@ model_fit <- sim_mixture_compiled$sample(
   init = function() list(y_mix=y_mix)
 )
 
-tmp <- paste0(outfile.base,'-rep_',r,'-fitted_stan_model.rds')
+tmp <- paste0(outfile.base,'-fitted_stan_model.rds')
 cat("\n Save fitted data to file ", tmp , "\n")
 model_fit$save_object(file = tmp)
 

@@ -70,10 +70,10 @@ dind <- data.table(dind)
 
 ## read stanin
 cat('\nReading Stan input data...')
-infile.stanin <- list.files(args$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
+infile.stanin <- list.files(args_dir$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
 stopifnot(length(infile.stanin)>0)
 stopifnot(length(infile.stanin)<=1)
-tmp <- load(file.path(args$outdir, infile.stanin))
+tmp <- load(file.path(args_dir$outdir, infile.stanin))
 stopifnot(c('args','stan_data')%in%tmp)
 args$analysis = 'analysis_220713'
 args$indir = '~/Box\ Sync/Roadmap'
@@ -176,9 +176,9 @@ g_flows <- ggplot(subset(po,TO_BPLACE!='Overall')) + geom_bar(aes(x=TO_BPLACE,y=
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
 
 ggsave(file = paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_contributions.pdf'),
-       g, w = 11, h = 8)
+       g_flows, w = 11, h = 8)
 ggsave(file = paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_contributions.png'),
-       g, w = 11, h = 8)
+       g_flows, w = 11, h = 8)
 
 
 ## get flows from group a to group b out of total flows ----
