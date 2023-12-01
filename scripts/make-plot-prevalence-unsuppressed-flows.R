@@ -22,18 +22,21 @@ if (1)
     #indir = '~/Box\ Sync/Roadmap/source_attribution',
     indir = '~/Box\ Sync/Roadmap',
     analysis = 'analysis_220713',
-    pairs.dir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/agegps_updated_criteria_MSM-2010_2022',
+    #pairs.dir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/agegps_updated_criteria_MSM-2010_2022',
+    pairs.dir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/update_blace_230714_MSM-2010_2021_no_timeelapsed_exclusions',
     #outdir = '/Users/alexb/Documents/GitHub/source.attr.with.infection.time.fork/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_TE16_MSM-2010_2022-1665619',
-    outdir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_sensanalysis_210216_MSM-618873',
+    #outdir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_sensanalysis_210216_MSM-618873',
+    outdir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/mm_bgUnif_piGP_221027b-update_blace_230714_MSM-2010_2021_no_timeelapsed_exclusions-267995',
     clock_model = '/Users/alexb/Box Sync/Roadmap/source_attribution/molecular_clock/hierarchical',
     stanModelFile = 'mm_bgUnif_piGP_221027b',
     scenario = 15,
     reps = 1,
     rep = 1,
     simulate_data = T,
-    job_tag = 'agegps_sensanalysis_210216_MSM-2010_2022',
+    #job_tag = 'agegps_sensanalysis_210216_MSM-2010_2022',
+    job_tag = '2010_2021_no_timeelapsed_exclusions',
     undiagnosed = '/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon/Roadmap/sources/ethnicity_analysis/undiagnosed/undiagnosed_211102-cohort_2010_2015',
-    overwrite = 0
+    overwrite = 1
   )
 }
 
@@ -90,6 +93,7 @@ model_fit <- readRDS(file = tmp)
 
 load(infile.seq)
 
+do <- unique(do)
 do <- merge(do,subset(dind,select=c('PATIENT','LOC_BIRTH')),by.x='FROM_SEQUENCE_ID',by.y='PATIENT',all.x=T)
 setnames(do,'LOC_BIRTH','FROM_LOC_BIRTH')
 do <- merge(do,subset(dind,select=c('PATIENT','LOC_BIRTH')),by.x='TO_SEQUENCE_ID',by.y='PATIENT',all.x=T)
