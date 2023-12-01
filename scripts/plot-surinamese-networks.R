@@ -1,12 +1,4 @@
 
-require(data.table)
-require(ggplot2)
-require(ggsci)
-require(ggpubr)
-require(igraph)
-require(GGally)
-
-
 ## preamble ----
 require(data.table)
 require(ggplot2)
@@ -19,6 +11,9 @@ require(cowplot)
 require(Hmisc)
 library(networkD3)
 library(htmlwidgets)
+require(igraph)
+require(GGally)
+
 
 if (1)
 {
@@ -412,9 +407,11 @@ all_w[FROM_BPLACE==TO_BPLACE, same_eth:= 1]
 g <- ggplot(subset(all_w,same_eth==1)) + geom_histogram(aes(x=exp(gamma_dens),fill=FROM_BPLACE)) +
   facet_grid(FROM_BPLACE~.,scales='free') +
   #scale_fill_manual(values=mycols) +
-  labs(x='gamma dens',y='count',fill='ethnicity') +
+  labs(x='Gamma density',y='Number of pairs',fill='Birthplace') +
   scale_fill_npg() +
-  theme_bw()
-ggsave(file=file.path(out.dir,'distribution_weights_same_ethnicity_links.png'),g,w=6,h=7)
+  theme_bw() +
+  theme(strip.background=element_blank())
+ggsave(file=file.path(out.dir,'distribution_weights_same_ethnicity_links.png'),g,w=6,h=9)
+ggsave(file=file.path(out.dir,'distribution_weights_same_ethnicity_links.pdf'),g,w=6,h=9)
 
 
