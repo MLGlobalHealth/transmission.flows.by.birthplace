@@ -28,13 +28,9 @@ args_line <-  as.list(commandArgs(trailingOnly=TRUE))
 if(length(args_line) > 0)
 {
   stopifnot(args_line[[1]]=='-source_dir')
-  stopifnot(args_line[[3]]=='-stanModelFile')
   stopifnot(args_line[[5]]=='-indir')
-  stopifnot(args_line[[7]]=='-outdir')
-  stopifnot(args_line[[9]]=='-job_tag')
-  stopifnot(args_line[[11]]=='-scenario')
-  stopifnot(args_line[[13]]=='-rep')
-  stopifnot(args_line[[15]]=='-weights')
+  stopifnot(args_line[[11]]=='-analysis')
+  stopifnot(args_line[[11]]=='-undiagnosed')
 
   args <- list()
   args[['source_dir']] <- args_line[[2]]
@@ -42,9 +38,8 @@ if(length(args_line) > 0)
   args[['indir']] <- args_line[[6]]
   args[['outdir']] <- args_line[[8]]
   args[['job_tag']] <- args_line[[10]]
-  args[['scenario']] <- as.integer(args_line[[12]])
-  args[['rep']] <- as.integer(args_line[[14]])
-  args[['weights']] <- as.integer(args_line[[16]])
+  args[['analysis']] <- as.integer(args_line[[12]])
+  args[['undiagnosed']] <- as.integer(args_line[[12]])
 }
 args
 
@@ -181,9 +176,11 @@ ds[, cases:= 'Estimated incident\ncases']
 # plot estimated incident cases by birthplace ----
 ds[, BPLACE:= factor(BPLACE,
                             levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
-                                     'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
+                                     'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                     labels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                              'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
 
-g_cases_bplace <- ggplot(subset(ds,YEAR_OF_INF_EST>=1996)) +
+g_cases_bplace <- ggplot(subset(ds,YEAR_OF_INF_EST>=2010)) +
   geom_bar(aes(x=YEAR_OF_INF_EST,y=N_inf,fill=BPLACE),size=0.3,stat="identity",position="stack") +
   scale_fill_npg() +
   #scale_colour_manual(values='black') +
@@ -230,11 +227,11 @@ pal_st <- c('gray45',pal_aaas('default')(9)[c(6,1)])
 pal_st <- c('gray45',pal_lancet('lanonc')(9)[c(2,1)])
 pal_st <- c(pal_jama('default')(7)[c(4,3)])
 
-g_cases <- ggplot(subset(ds,YEAR_OF_INF_EST>=1996)) +
+g_cases <- ggplot(subset(ds,YEAR_OF_INF_EST>=2010)) +
   #geom_bar(aes(x=YEAR_OF_INF_EST,y=value,col=ST),fill='white',stat="identity",position="stack") +
   #geom_bar(data=subset(ds,ST!='Not diagnosed and/or\nnot sequenced'),aes(x=YEAR_OF_INF_EST,y=value,fill=ST),color='black',stat="identity",position="stack") +
-  geom_bar(data=subset(ds,ST=='Not diagnosed\nand/or\nnot sequenced' & YEAR_OF_INF_EST>=1996),aes(x=YEAR_OF_INF_EST,y=value,col=cases),fill='white',size=0.3,stat="identity") +
-  geom_bar(data=subset(ds,ST!='Not diagnosed\nand/or\nnot sequenced' & YEAR_OF_INF_EST>=1996),aes(x=YEAR_OF_INF_EST,y=value,fill=ST),col='black',size=0.3,stat="identity",position="stack") +
+  geom_bar(data=subset(ds,ST=='Not diagnosed\nand/or\nnot sequenced' & YEAR_OF_INF_EST>=2010),aes(x=YEAR_OF_INF_EST,y=value,col=cases),fill='white',size=0.3,stat="identity") +
+  geom_bar(data=subset(ds,ST!='Not diagnosed\nand/or\nnot sequenced' & YEAR_OF_INF_EST>=2010),aes(x=YEAR_OF_INF_EST,y=value,fill=ST),col='black',size=0.3,stat="identity",position="stack") +
   facet_grid(MB~.) +
   #scale_fill_aaas() +
   #scale_colour_manual(values=c('gray45',pal_st)) +
@@ -308,7 +305,7 @@ tmp[, assumption:= factor(assumption,levels=c('prop_bplace','allb'),labels=c('Su
 # plot prop of non-Bs
 #pal <- pal_npg('nrc')(4)[c(3,4)]
 pal <- pal_npg('nrc')(4)[c(1,4)]
-g_props <- ggplot(subset(tmp,SUBTYPE=='Non-B' & YEAR_OF_INF_EST>=1996)) +
+g_props <- ggplot(subset(tmp,SUBTYPE=='Non-B' & YEAR_OF_INF_EST>=2010)) +
   geom_errorbar(aes(x=YEAR_OF_INF_EST,ymin=CL, ymax=CU,fill=MB),position=position_dodge(width=0.9),width=0.5, colour="black")	+
   geom_point(aes(x=YEAR_OF_INF_EST,y=p,colour=MB),position=position_dodge(width=0.9)) +
   facet_grid(MB~assumption) +
@@ -325,13 +322,14 @@ g_props <- ggplot(subset(tmp,SUBTYPE=='Non-B' & YEAR_OF_INF_EST>=1996)) +
 
 ## stitch together ----
 
-g <- plot_grid(plot_grid(g_cases_bplace,g_cases,nrow=1,align='h',axis='t',rel_widths=c(0.53,0.47),labels=c('A','B'),label_size=14),
-               plot_grid(g_props, labels=c('C'),label_size=14),ncol=1,align='hv',axis='lr')#,rel_widths=c(0.28,0.28,0.44),
+#g <- plot_grid(plot_grid(g_cases_bplace,g_cases,nrow=1,align='h',axis='t',rel_widths=c(0.53,0.47),labels=c('A','B'),label_size=14),
+g <- plot_grid(plot_grid(g_cases_bplace,g_cases,nrow=1,align='h',axis='t',rel_widths=c(0.55,0.45),labels=c('A','B'),label_size=14),
+              plot_grid(g_props, labels=c('C'),label_size=14),ncol=1,align='hv',axis='lr')#,rel_widths=c(0.28,0.28,0.44),
 
 
 
-ggsave(file=paste0(outfile.base,'-cases_birthplace_subtypes_birthplace_prop_nonB_panel_1996-2021.pdf'), g, w = 11, h = 10)
-ggsave(file=paste0(outfile.base,'-cases_birthplace_subtypes_birthplace_prop_nonB_panel_1996-2021.png'), g, w = 11, h = 10)
+ggsave(file=paste0(outfile.base,'-cases_birthplace_subtypes_birthplace_prop_nonB_panel_2010-2021.pdf'), g, w = 11, h = 10)
+ggsave(file=paste0(outfile.base,'-cases_birthplace_subtypes_birthplace_prop_nonB_panel_2010-2021.png'), g, w = 11, h = 10)
 
 
 

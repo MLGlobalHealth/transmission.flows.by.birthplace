@@ -28,23 +28,19 @@ args_line <-  as.list(commandArgs(trailingOnly=TRUE))
 if(length(args_line) > 0)
 {
   stopifnot(args_line[[1]]=='-source_dir')
-  stopifnot(args_line[[3]]=='-stanModelFile')
-  stopifnot(args_line[[5]]=='-indir')
-  stopifnot(args_line[[7]]=='-outdir')
-  stopifnot(args_line[[9]]=='-job_tag')
-  stopifnot(args_line[[11]]=='-scenario')
-  stopifnot(args_line[[13]]=='-rep')
-  stopifnot(args_line[[15]]=='-weights')
+  stopifnot(args_line[[3]]=='-indir')
+  stopifnot(args_line[[5]]=='-outdir')
+  stopifnot(args_line[[7]]=='-analysis')
+  stopifnot(args_line[[9]]=='-undiagnosed')
+  stopifnot(args_line[[11]]=='-overwrite')
 
   args <- list()
   args[['source_dir']] <- args_line[[2]]
-  args[['stanModelFile']] <- args_line[[4]]
-  args[['indir']] <- args_line[[6]]
-  args[['outdir']] <- args_line[[8]]
-  args[['job_tag']] <- args_line[[10]]
-  args[['scenario']] <- as.integer(args_line[[12]])
-  args[['rep']] <- as.integer(args_line[[14]])
-  args[['weights']] <- as.integer(args_line[[16]])
+  args[['indir']] <- args_line[[4]]
+  args[['outdir']] <- args_line[[6]]
+  args[['analysis']] <- args_line[[8]]
+  args[['undiagnosed']] <- args_line[[10]]
+  args[['overwrite']] <- args_line[[12]]
 }
 args
 

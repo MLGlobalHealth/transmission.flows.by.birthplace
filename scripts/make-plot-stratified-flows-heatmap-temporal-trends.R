@@ -38,31 +38,27 @@ args_line <-  as.list(commandArgs(trailingOnly=TRUE))
 if(length(args_line) > 0)
 {
   stopifnot(args_line[[1]]=='-source_dir')
-  stopifnot(args_line[[3]]=='-stanModelFile')
-  stopifnot(args_line[[5]]=='-indir')
-  stopifnot(args_line[[7]]=='-outdir')
-  stopifnot(args_line[[9]]=='-job_tag')
-  stopifnot(args_line[[11]]=='-scenario')
-  stopifnot(args_line[[13]]=='-rep')
-  stopifnot(args_line[[15]]=='-weights')
+  stopifnot(args_line[[3]]=='-indir')
+  stopifnot(args_line[[5]]=='-outdir')
+  stopifnot(args_line[[7]]=='-analysis')
+  stopifnot(args_line[[9]]=='-undiagnosed')
+  stopifnot(args_line[[11]]=='-overwrite')
 
   args <- list()
   args[['source_dir']] <- args_line[[2]]
-  args[['stanModelFile']] <- args_line[[4]]
-  args[['indir']] <- args_line[[6]]
-  args[['outdir']] <- args_line[[8]]
-  args[['job_tag']] <- args_line[[10]]
-  args[['scenario']] <- as.integer(args_line[[12]])
-  args[['rep']] <- as.integer(args_line[[14]])
-  args[['weights']] <- as.integer(args_line[[16]])
+  args[['indir']] <- args_line[[4]]
+  args[['outdir']] <- args_line[[6]]
+  args[['analysis']] <- args_line[[8]]
+  args[['undiagnosed']] <- args_line[[10]]
+  args[['overwrite']] <- args_line[[12]]
 }
 args
 
 cat(" \n --------------------------------  with arguments -------------------------------- \n")
 
-infile.seq <-	file.path(args_dir$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
-infile.bas <- file.path(args_dir$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
-infile.meta <- file.path(args_dir$indir, args_dir$analysis, 'misc', '220713_sequence_labels.rda')
+infile.seq <-	file.path(args$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
+infile.bas <- file.path(args$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
+infile.meta <- file.path(args$indir, args$analysis, 'misc', '220713_sequence_labels.rda')
 
 ### merge in patient metadata ----
 load(infile.meta)
@@ -70,13 +66,13 @@ dind <- data.table(dind)
 
 ## read stanin
 cat('\nReading Stan input data...')
-infile.stanin <- list.files(args_dir$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
+infile.stanin <- list.files(args$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
 stopifnot(length(infile.stanin)>0)
 stopifnot(length(infile.stanin)<=1)
-tmp <- load(file.path(args_dir$outdir, infile.stanin))
+tmp <- load(file.path(args$outdir, infile.stanin))
 stopifnot(c('args','stan_data')%in%tmp)
-args$analysis = 'analysis_220713'
-args$indir = '~/Box\ Sync/Roadmap'
+args$analysis = args_dir$analysis
+args$indir = args_dir$indir
 
 tmp <- paste0(outfile.base,'-fitted_stan_model.rds')
 cat("\n Read fitted dat ", tmp , "\n")
