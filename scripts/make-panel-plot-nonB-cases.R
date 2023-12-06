@@ -3,7 +3,7 @@
 require(data.table)
 require(lubridate)
 
-if (1)
+if (0)
 {
   args <- list(
     source_dir = '~/Documents/GitHub/transmission.flows.by.birthplace',
@@ -28,9 +28,9 @@ args_line <-  as.list(commandArgs(trailingOnly=TRUE))
 if(length(args_line) > 0)
 {
   stopifnot(args_line[[1]]=='-source_dir')
-  stopifnot(args_line[[5]]=='-indir')
-  stopifnot(args_line[[11]]=='-analysis')
-  stopifnot(args_line[[11]]=='-undiagnosed')
+  stopifnot(args_line[[3]]=='-indir')
+  stopifnot(args_line[[5]]=='-analysis')
+  stopifnot(args_line[[7]]=='-undiagnosed')
 
   args <- list()
   args[['source_dir']] <- args_line[[2]]
@@ -39,7 +39,7 @@ if(length(args_line) > 0)
   args[['outdir']] <- args_line[[8]]
   args[['job_tag']] <- args_line[[10]]
   args[['analysis']] <- as.integer(args_line[[12]])
-  args[['undiagnosed']] <- as.integer(args_line[[12]])
+  args[['undiagnosed']] <- as.integer(args_line[[14]])
 }
 args
 

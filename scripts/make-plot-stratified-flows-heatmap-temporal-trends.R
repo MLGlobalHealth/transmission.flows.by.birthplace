@@ -13,7 +13,7 @@ library(networkD3)
 library(htmlwidgets)
 require(viridis)
 
-if (1)
+if (0)
 {
   args_dir <- list(
     source_dir = '~/Documents/GitHub/transmission.flows.by.birthplace',

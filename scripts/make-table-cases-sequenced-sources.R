@@ -3,7 +3,7 @@
 require(data.table)
 require(lubridate)
 
-if (1)
+if (0)
 {
   args <- list(
     source_dir = '~/Documents/GitHub/transmission.flows.by.birthplace',

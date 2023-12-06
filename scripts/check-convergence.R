@@ -13,12 +13,12 @@ require(grid)
 require(viridis)
 require(loo)
 
-if (1)
+if (0)
 {
   args <- list(
-    source_dir = '~/Documents/GitHub/source.attr.with.infection.time',
+    source_dir = '~/Documents/GitHub/transmission.flows.by.birthplace',
     indir = '~/Box\ Sync/Roadmap/source_attribution',
-    outdir = '/Users/alexb/Documents/GitHub/source.attr.with.infection.time/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_sensanalysis_210216_MSM-618873',
+    outdir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_sensanalysis_210216_MSM-618873',
     stanModelFile = 'mm_bgUnif_piGP_221027b',
     job_tag = 'agegps_sensanalysis_210216_MSM'
   )
@@ -40,16 +40,12 @@ if(length(args_line) > 0)
   args[['job_tag']] <- args_line[[8]]
 }
 args
-replicate <- args$rep
-cat(paste0("rep ", replicate))
-## load functions
-source(file.path(args$source_dir, 'R', 'functions_simulation_scenarios.R'))
 
 cat(" \n --------------------------------  with arguments -------------------------------- \n")
 
 ## read stanin
 cat('\nReading Stan input data...')
-infile.stanin <- list.files(args$outdir, pattern=paste0('rep_1','_stanin.RData$'), recursive=TRUE)[1]
+infile.stanin <- list.files(args$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
 stopifnot(length(infile.stanin)>0)
 stopifnot(length(infile.stanin)<=1)
 tmp <- load(file.path(args$outdir, infile.stanin))
@@ -57,26 +53,14 @@ stopifnot(c('args','stan_data')%in%tmp)
 
 do <- do[order(PAIR_ID),]
 
-tmp <- paste0(outfile.base,'-rep_',replicate,'-fitted_stan_model.rds')
+outfile.base <- file.path(args$source_dir,outfile.base)
+
+tmp <- paste0(outfile.base,'-fitted_stan_model.rds')
 cat("\n Read fitted dat ", tmp , "\n")
 model_fit <- readRDS(file = tmp)
 
 cat(" \n -------------------------------- \n Check convergence and divergences \n -------------------------------- \n")
-if(grepl('Vanilla',args$stanModelFile)){
-  fit.target.pars <- c('logit_y_mix_0','y_mix','log_alpha1_pair[1]','log_phi_pair[1]',"lp__")
-}else if(grepl('Reg',args$stanModelFile)){
-  fit.target.pars <- c('y_mix[1]','logit_y_mix_0','beta_age_src[1]','beta_age_src[2]','beta_age_src[3]','beta_age_src[4]','beta_age_src[5]',
-                       'beta_age_rcp[1]','beta_age_rcp[2]','beta_age_rcp[3]','beta_age_rcp[4]','beta_age_rcp[5]',"lp__")
-}else if(grepl('GP',args$stanModelFile)){
-  fit.target.pars <- c('logit_y_mix_0','gpscale','lscale[1]','lscale[2]',"lp__")
-}
-if(grepl('1DGP',args$stanModelFile)){
-  if(grepl('_agesrcrec_',args$job_tag)){
-      fit.target.pars <- c('logit_y_mix_0',"lp__","gpscale","lscale")
-  }else{
-      fit.target.pars <- c('logit_y_mix_0',"lp__","gpscale","lscale")
-  }
-}
+fit.target.pars <- c('logit_y_mix_0','gpscale','lscale[1]','lscale[2]',"lp__")
 
 po <- model_fit$draws(inc_warmup = TRUE,
                       #format = 'draws_df',
@@ -89,15 +73,18 @@ head(su)
 su[,min(ess_bulk)]
 su[,max(rhat)]
 
-args$file_stanModelGQs <- file.path(args$source_dir, 'stan_model_files',paste0(args$stanModelFile,'_GQs','.stan'))
-gq_program <- args$file_stanModelGQs
-mod_gq <- cmdstan_model(gq_program)
-fit_gq <- mod_gq$generate_quantities(model_fit, data = stan_data, seed = 123)
-log_lik <- fit_gq$draws("log_lik", format = "matrix")
-LOO <- loo::loo(log_lik)
-print(LOO)
-saveRDS(LOO, file = paste0(outfile.base, "-LOO.rds"))
-saveRDS(LOO, file = paste0(outfile.base, "-LOO.csv"))
+#LOO analysis
+if(0){
+  args$file_stanModelGQs <- file.path(args$source_dir, 'stan_model_files',paste0(args$stanModelFile,'-gqs','.stan'))
+  gq_program <- args$file_stanModelGQs
+  mod_gq <- cmdstan_model(gq_program)
+  fit_gq <- mod_gq$generate_quantities(model_fit, data = stan_data, seed = 123)
+  log_lik <- fit_gq$draws("log_lik", format = "matrix")
+  LOO <- loo::loo(log_lik)
+  print(LOO)
+  saveRDS(LOO, file = paste0(outfile.base, "-LOO.rds"))
+  saveRDS(LOO, file = paste0(outfile.base, "-LOO.csv"))
+}
 
 color_scheme_set("mix-blue-red")
 p <- bayesplot:::mcmc_trace(po,

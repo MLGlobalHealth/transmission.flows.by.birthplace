@@ -200,7 +200,7 @@ generated quantities{
     }
 
     if(npairs==1){
-        tpair_prob_w[i] = exp(num-log_sum_exp(den_one]));
+        tpair_prob_w[i] = exp(num-log_sum_exp(den_one));
     }else{
         tpair_prob_w[i] = exp(num-log_sum_exp(den));
     }
