@@ -13,7 +13,7 @@ trsm <- 'MSM'
 rdas <- list.files(indir,pattern = "*AmsMSM__workspace.rda")
 
 # load metadata
-pairs.dir <- file.path('~/Documents/GitHub/source.attr.with.infection.time.fork','out_Amsterdam','agegps_sensanalysis_210216_MSM-2010_2022')#,'agegps_updated_criteria_MSM-2010_2022')
+pairs.dir <- file.path('~/Documents/GitHub/transmission.flows.by.birthplace','out_Amsterdam','agegps_sensanalysis_210216_MSM-2010_2022')#,'agegps_updated_criteria_MSM-2010_2022')
 all_pairs <- readRDS(file=file.path(pairs.dir, 'all_pairs.rds'))
 pairs <- readRDS(file.path(pairs.dir,paste0(trsm,"_pairs.rds")))
 
@@ -56,7 +56,7 @@ pairs <- readRDS(file.path(pairs.dir,paste0(trsm,"_pairs.rds")))
 
   # add birthplace
   d1 <- merge(d1,subset(dind,select=c('PATIENT','ORIGIN')),by.x='ID',by.y='PATIENT',all.x=T)
-  
+
   # keep first obs for sources that have multiple recipients
   setkey(d1,tip)
   d1 <- d1[,.SD[1],by = tip]
@@ -68,7 +68,7 @@ pairs <- readRDS(file.path(pairs.dir,paste0(trsm,"_pairs.rds")))
   d1[, bplace:= 0]
   d1[TRSM=='AmsMSM' & ORIGIN!='NL', bplace:= 1]
   d1[TRSM=='AmsMSM' & ORIGIN=='NL', bplace:= 2]
-  
+
   # flag the individuals who are possible sources to the recipients
   tmp <- unique(subset(d1,select=c('TO_CLUSTER_NUMBER'),prs==3))
   tmp[, poss_src:= 1]

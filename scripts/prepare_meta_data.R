@@ -3,7 +3,7 @@ require(data.table)
 
 
 args <- list(
-  source_dir= '~/Documents/GitHub/source.attr.with.infection.time',
+  source_dir= '~/Documents/GitHub/transmission.flows.by.birthplace',
   analysis = 'analysis_220713',
   indir = '/Users/alexb/Documents/Roadmap/refactor_code',
   data='~/Box\ Sync/Roadmap/RQ1 Estimating introductions'

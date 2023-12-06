@@ -7,16 +7,16 @@ require(bayesplot)
 ## Preamble----
 if (1)
 {
-  pkg.dir <- '~/Documents/GitHub/source.attr.with.infection.time'
-  indir <- file.path(pkg.dir,'data_other')
-  outdir <- '~/Documents/GitHub/source.attr.with.infection.time/out_simulated'
+  pkg.dir <- '~/Documents/GitHub/transmission.flows.by.birthplace'
+  indir <- file.path(pkg.dir,'data')
+  outdir <- '~/Documents/GitHub/transmission.flows.by.birthplace/out_simulated'
   outdir <- '~/Box Sync/Roadmap/source_attribution/molecular_clock/hierarchical'
   stan.model <- 'clock_model_gamma_hier_220315'
 }
 if (0)
 {
-  pkg.dir <- '~/git/source.attr.with.infection.time'
-  indir <- file.path(pkg.dir,'data_other')
+  pkg.dir <- '~/git/transmission.flows.by.birthplace'
+  indir <- file.path(pkg.dir,'data')
   outdir <- '/Users/or105/Library/CloudStorage/Box-Box/OR_Work/2022/2022_source_attribution_with_TSI/molecular_clock'
 }
 
