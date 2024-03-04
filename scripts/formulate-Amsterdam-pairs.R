@@ -56,7 +56,8 @@ args
 
 source(file.path(args$source_dir,'R/functions.R'))
 
-out.dir <- file.path('~/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam',args$results)
+#out.dir <- file.path('~/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam',args$results)
+out.dir <- file.path(args$out.dir,args$results)
 if(1) dir.create( out.dir )
 
 `%notin%` <- Negate(`%in%`)
