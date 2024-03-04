@@ -38,8 +38,9 @@ if(length(args_line) > 0)
   stopifnot(args_line[[5]]=='-outdir')
   stopifnot(args_line[[7]]=='-analysis')
   stopifnot(args_line[[9]]=='-clock_model')
-  stopifnot(args_line[[11]]=='-job_tag')
+  stopifnot(args_line[[11]]=='-jobtag')
   stopifnot(args_line[[13]]=='-trsm')
+  stopifnot(args_line[[15]]=='-seed')
 
   args <- list()
   args[['source_dir']] <- args_line[[2]]
@@ -47,8 +48,9 @@ if(length(args_line) > 0)
   args[['out.dir']] <- args_line[[6]]
   args[['analysis']] <- args_line[[8]]
   args[['clock_model']] <- args_line[[10]]
-  args[['job_tag']] <- args_line[[12]]
+  args[['results']] <- args_line[[12]]
   args[['trsm']] <- args_line[[14]]
+  args[['seed']] <- args_line[[16]]
 }
 args
 
