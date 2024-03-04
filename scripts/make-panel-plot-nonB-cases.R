@@ -2,6 +2,10 @@
 ## preamble ----
 require(data.table)
 require(lubridate)
+require(ggplot2)
+require(ggsci)
+require(ggpubr)
+require(cowplot)
 
 if (0)
 {
@@ -29,21 +33,26 @@ if(length(args_line) > 0)
 {
   stopifnot(args_line[[1]]=='-source_dir')
   stopifnot(args_line[[3]]=='-indir')
-  stopifnot(args_line[[5]]=='-analysis')
-  stopifnot(args_line[[7]]=='-undiagnosed')
+  stopifnot(args_line[[5]]=='-outdir')
+  stopifnot(args_line[[7]]=='-analysis')
+  stopifnot(args_line[[9]]=='-stanModelFile')
+  stopifnot(args_line[[11]]=='-job_tag')
+  stopifnot(args_line[[13]]=='-undiagnosed')
 
   args <- list()
   args[['source_dir']] <- args_line[[2]]
-  args[['stanModelFile']] <- args_line[[4]]
-  args[['indir']] <- args_line[[6]]
-  args[['outdir']] <- args_line[[8]]
-  args[['job_tag']] <- args_line[[10]]
-  args[['analysis']] <- as.integer(args_line[[12]])
-  args[['undiagnosed']] <- as.integer(args_line[[14]])
+  args[['indir']] <- args_line[[4]]
+  args[['outdir']] <- args_line[[6]]
+  args[['analysis']] <- args_line[[8]]
+  args[['stanModelFile']] <- args_line[[10]]
+  args[['job_tag']] <- args_line[[12]]
+  args[['undiagnosed']] <- args_line[[14]]
 }
 args
 
 source(file.path(args$source_dir, 'R', 'functions.R'))
+
+outfile.base <- file.path(args$outdir, paste0(args$stanModelFile,"-",args$job_tag))
 
 cat(" \n --------------------------------  with arguments -------------------------------- \n")
 
@@ -84,7 +93,7 @@ da[, SUBTYPE:= factor(SUBTYPE,levels=c('B','01_AE','02_AG','A1','C','G','D','06_
                       labels=c('B','01AE','02AG','A1','C','G','D','06_cpx','Other'))]
 
 ## load infection dates ----
-dinf <- data.table(read.csv(file.path('data_Ams',args$analysis,'Infection_date_est_rec.csv')))
+dinf <- data.table(read.csv(file.path(args$source_dir,'data_Ams',args$analysis,'Infection_date_est_rec.csv')))
 setnames(dinf,c("id",'estsctodiagMedian','estsctodiagLL','estsctodiagUL'),c("PATIENT",'SER_TO_DIAG','SER_TO_DIAG_LL','SER_TO_DIAG_UL'))
 dinf <- unique(dinf)
 dinf[,DIAGNOSIS_DATE:= as.Date(dinf[,hiv_pos_d],format="%Y-%m-%d")]

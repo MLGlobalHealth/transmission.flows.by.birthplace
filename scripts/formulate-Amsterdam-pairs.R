@@ -22,18 +22,20 @@ args <- list(
   source_dir ='/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace',
   #indir = '/Users/alexb/Documents/Roadmap/refactor_code',
   indir = '/Users/alexb/Box Sync/Roadmap',
-  mig_groups=T,
-  trsm='MSM',
-  sens=T # for sensitivity analysis with patristic distances of 0
+  analysis <- 'analysis_220713',
+  results <- 'update_blace_230714_MSM-2010_2021',
+  analysis <- 'analysis_220713',
+  clock_model <- '/Users/alexb/Box Sync/Roadmap/source_attribution/molecular_clock/hierarchical',
+  trsm='MSM'
 )
-source(file.path(args$source_dir, 'R', 'functions_simulation_scenarios.R'))
 
+out.dir <- file.path('~/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam',args$results)
 if(1) dir.create( out.dir )
 
 `%notin%` <- Negate(`%in%`)
 
 infile.seq <-	file.path(args$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
-infile.meta <- file.path(args$indir, analysis, 'misc', '220713_sequence_labels.rda')
+infile.meta <- file.path(args$indir, args$analysis, 'misc', '220713_sequence_labels.rda')
 infile.bas <- file.path(args$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
 
 load(infile.seq)
@@ -44,18 +46,18 @@ dind <- unique(dind)
 
 ## load infection time estimates and metadata ----
 
-dinf <- data.table(read.csv(file.path('data_Ams',analysis,'Infection_date_est_rec.csv')))
+dinf <- data.table(read.csv(file.path('data_Ams',args$analysis,'Infection_date_est_rec.csv')))
 setnames(dinf,c("id",'estsctodiagMedian','estsctodiagLL','estsctodiagUL'),c("TO_SEQUENCE_ID",'SER_TO_DIAG','SER_TO_DIAG_LL','SER_TO_DIAG_UL'))
 dinf <- unique(dinf)
 dinf <- merge(dinf,subset(dind,select=c('PATIENT','CITY','SEQ','TRANSM')),
                                                 by.x='TO_SEQUENCE_ID',by.y='PATIENT',all.x=T)
 dinf[, SEQ:= TO_SEQUENCE_ID %in% ds$PATIENT]
 
-meta_data <- readRDS(file.path('data_Ams',analysis,'meta_data_mg_country.rds'))
+meta_data <- readRDS(file.path('data_Ams',args$analysis,'meta_data_mg_country.rds'))
 setnames(meta_data,"ID","TO_SEQUENCE_ID")
 setnames(meta_data,"bplace","BPLACE")
 meta_data <- unique(meta_data)
-data_age <- readRDS(file.path('data_Ams',analysis,'data_age.rds'))
+data_age <- readRDS(file.path('data_Ams',args$analysis,'data_age.rds'))
 data_age <- as.data.table(data_age)
 setnames(data_age,c("TO_SEQUENCE_ID","BIRTH_DATE","BIRTH_DATE_DEC"))
 
@@ -205,7 +207,7 @@ pairs <- subset(pairs, FLAG==0)
 
 ### exclude suppressed sources ----
 
-infile.rna <-	file.path(indir_data, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_RNA.csv')
+infile.rna <-	file.path(indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_RNA.csv')
 dat <- read.csv(infile.rna,header=T)
 dat$RNA_D <- as.Date(dat$RNA_D,format=c("%Y-%m-%d"))
 dat <- data.table(dat)
@@ -295,15 +297,11 @@ cat(paste0('Number of unique cases: ',length(unique(pairs$TO_SEQUENCE_ID))))
 ## add genetic distance and calculate time elapsed ----
 
 # Integrate genetic distance of each pair from the distances found from the maximum likelihood phylogenetic tree
-gen_dist <- readRDS(file.path('data_Ams',analysis,paste0('pairwise_dist_allSTs_',args$trsm,'.rds')))
+gen_dist <- readRDS(file.path('data_Ams',args$analysis,paste0('pairwise_dist_allSTs_',args$trsm,'.rds')))
 pairs <- merge(subset(gen_dist,select = c("FROM_SEQUENCE_ID","TO_SEQUENCE_ID","distance")),pairs,by= c("FROM_SEQUENCE_ID","TO_SEQUENCE_ID"),all.y=T)
 setnames(pairs,"distance","GEN_DIST")
-# sensitivity analysis: replace distances of 0 with 1 mutation across alignment (1/1302)
-if(args$sens==T){
-  pairs[is.na(GEN_DIST),GEN_DIST:= 0.00077]
-}else{
-  pairs <- subset(pairs,!is.na(GEN_DIST))
-}
+# replace distances of 0 with 1 mutation across alignment (1/1302)
+pairs[is.na(GEN_DIST),GEN_DIST:= 0.00077]
 
 ## add extra information ----
 # Determine the stage group of the transmitter at the estimated time of infection based on his status
@@ -530,7 +528,7 @@ cat(" \n ------------- \n Load quantiles from fitted molecular clock model \n --
 dpr <- data.table(d_TSeqT = seq(0.1,18,0.1))
 dpr[, id := seq_len(nrow(dpr))]
 
-cm <- readRDS(file.path(clock_model,'clock_model_gamma_hier_220315-stan_fit.rds'))
+cm <- readRDS(file.path(args$clock_model,'clock_model_gamma_hier_220315-stan_fit.rds'))
 pd <- cm$draws(inc_warmup = FALSE)
 po <- list()
 tmp <- pd[,,which(grepl('log_alpha1$',dimnames(pd)[[3]]))]

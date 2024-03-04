@@ -14,6 +14,7 @@ library(htmlwidgets)
 require(dplyr)
 require(tidyr)
 require(lubridate)
+require(here)
 
 if (0)
 {
@@ -76,6 +77,8 @@ args$indir = args_dir$indir
 #args$job_tag = args_dir$job_tag
 args$undiagnosed = args_dir$undiagnosed
 args$overwrite = args_dir$overwrite
+
+cat(outfile.base)
 
 tmp <- paste0(outfile.base,'-fitted_stan_model.rds')
 cat("\n Read fitted dat ", tmp , "\n")
