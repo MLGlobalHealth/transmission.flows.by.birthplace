@@ -7,7 +7,6 @@ require(bayesplot)
 library(lubridate)
 require(dplyr)
 require(ggsci)
-source('R/functions.R')
 
 analysis <- 'analysis_220713'
 results <- 'update_blace_230714_MSM-2010_2021'
@@ -53,6 +52,7 @@ if(length(args_line) > 0)
 }
 args
 
+source(file.path(args$source_dir,'R/functions.R'))
 
 out.dir <- file.path('~/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam',args$results)
 if(1) dir.create( out.dir )
