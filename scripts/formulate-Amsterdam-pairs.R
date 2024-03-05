@@ -74,18 +74,18 @@ dind <- unique(dind)
 
 ## load infection time estimates and metadata ----
 
-dinf <- data.table(read.csv(file.path('data_Ams',args$analysis,'Infection_date_est_rec.csv')))
+dinf <- data.table(read.csv(file.path(args$source_dir,'data_Ams',args$analysis,'Infection_date_est_rec.csv')))
 setnames(dinf,c("id",'estsctodiagMedian','estsctodiagLL','estsctodiagUL'),c("TO_SEQUENCE_ID",'SER_TO_DIAG','SER_TO_DIAG_LL','SER_TO_DIAG_UL'))
 dinf <- unique(dinf)
 dinf <- merge(dinf,subset(dind,select=c('PATIENT','CITY','SEQ','TRANSM')),
                                                 by.x='TO_SEQUENCE_ID',by.y='PATIENT',all.x=T)
 dinf[, SEQ:= TO_SEQUENCE_ID %in% ds$PATIENT]
 
-meta_data <- readRDS(file.path('data_Ams',args$analysis,'meta_data_mg_country.rds'))
+meta_data <- readRDS(file.path(args$source_dir,'data_Ams',args$analysis,'meta_data_mg_country.rds'))
 setnames(meta_data,"ID","TO_SEQUENCE_ID")
 setnames(meta_data,"bplace","BPLACE")
 meta_data <- unique(meta_data)
-data_age <- readRDS(file.path('data_Ams',args$analysis,'data_age.rds'))
+data_age <- readRDS(file.path(args$source_dir,'data_Ams',args$analysis,'data_age.rds'))
 data_age <- as.data.table(data_age)
 setnames(data_age,c("TO_SEQUENCE_ID","BIRTH_DATE","BIRTH_DATE_DEC"))
 
@@ -325,7 +325,7 @@ cat(paste0('Number of unique cases: ',length(unique(pairs$TO_SEQUENCE_ID))))
 ## add genetic distance and calculate time elapsed ----
 
 # Integrate genetic distance of each pair from the distances found from the maximum likelihood phylogenetic tree
-gen_dist <- readRDS(file.path('data_Ams',args$analysis,paste0('pairwise_dist_allSTs_',args$trsm,'.rds')))
+gen_dist <- readRDS(file.path(args$source_dir,'data_Ams',args$analysis,paste0('pairwise_dist_allSTs_',args$trsm,'.rds')))
 pairs <- merge(subset(gen_dist,select = c("FROM_SEQUENCE_ID","TO_SEQUENCE_ID","distance")),pairs,by= c("FROM_SEQUENCE_ID","TO_SEQUENCE_ID"),all.y=T)
 setnames(pairs,"distance","GEN_DIST")
 # replace distances of 0 with 1 mutation across alignment (1/1302)
