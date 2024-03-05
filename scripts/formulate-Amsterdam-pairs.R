@@ -50,7 +50,7 @@ if(length(args_line) > 0)
   args[['clock_model']] <- args_line[[10]]
   args[['results']] <- args_line[[12]]
   args[['trsm']] <- args_line[[14]]
-  args[['seed']] <- args_line[[16]]
+  args[['seed']] <- as.integer(args_line[[16]])
 }
 args
 
@@ -210,7 +210,7 @@ saveRDS(pairs,file=file.path(out.dir, 'all_pairs.rds'))
 # exclusion criteria ----
 
 ### remove any pairs in which transmitter died before infection date of recipient ----
-pairs <- merge(pairs,subset(dbas,select=c('PATIENT','MIG_D','MIG_D_aq','DEATH_D')),by.x='FROM_SEQUENCE_ID',by.y='PATIENT',all.x=T)
+pairs <- data.table(merge(pairs,subset(dbas,select=c('PATIENT','MIG_D','MIG_D_aq','DEATH_D')),by.x='FROM_SEQUENCE_ID',by.y='PATIENT',all.x=T))
 pairs[, DEATH_D := as.Date(DEATH_D,format="%Y-%m-%d")]
 
 cat(paste0('Number of sources who died before infection date of recipient: ',nrow(subset(pairs,!is.na(DEATH_D) & DEATH_D<TO_EST_INFECTION_DATE))))
