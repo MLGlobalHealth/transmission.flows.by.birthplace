@@ -235,7 +235,7 @@ pairs <- subset(pairs, FLAG==0)
 
 ### exclude suppressed sources ----
 
-infile.rna <-	file.path(indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_RNA.csv')
+infile.rna <-	file.path(args$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_RNA.csv')
 dat <- read.csv(infile.rna,header=T)
 dat$RNA_D <- as.Date(dat$RNA_D,format=c("%Y-%m-%d"))
 dat <- data.table(dat)
