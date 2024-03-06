@@ -42,6 +42,45 @@ args <- list(
   B = 1.2
 )
 
+## command line parsing if any
+args_line <-  as.list(commandArgs(trailingOnly=TRUE))
+if(length(args_line) > 0)
+{
+  stopifnot(args_line[[1]]=='-source_dir')
+  stopifnot(args_line[[3]]=='-stanModelFile')
+  stopifnot(args_line[[5]]=='-chain')
+  stopifnot(args_line[[7]]=='-indir')
+  stopifnot(args_line[[9]]=='-outdir')
+  stopifnot(args_line[[11]]=='-jobtag')
+  stopifnot(args_line[[13]]=='-trsm')
+  stopifnot(args_line[[15]]=='-cmdstan')
+  stopifnot(args_line[[17]]=='-pairs_dir')
+  stopifnot(args_line[[19]]=='-clock_model')
+  stopifnot(args_line[[21]]=='-time_period')
+  stopifnot(args_line[[23]]=='-m1')
+  stopifnot(args_line[[25]]=='-m2')
+  stopifnot(args_line[[27]]=='-B')
+  stopifnot(args_line[[29]]=='-local')
+
+  args <- list()
+  args[['source_dir']] <- args_line[[2]]
+  args[['stanModelFile']] <- args_line[[4]]
+  args[['chain']] <- args_line[[6]]
+  args[['indir']] <- args_line[[8]]
+  args[['outdir']] <- args_line[[10]]
+  args[['job_tag']] <- args_line[[12]]
+  args[['trsm']] <- args_line[[14]]
+  args[['cmdstan']] <- args_line[[16]]
+  args[['pairs_dir']] <- args_line[[18]]
+  args[['clock_model']] <- args_line[[20]]
+  args[['time_period']] <- as.integer(args_line[[22]])
+  args[['m1']] <- as.integer(args_line[[24]])
+  args[['m2']] <- as.integer(args_line[[26]])
+  args[['B']] <- as.integer(args_line[[28]])
+  args[['local']] <- as.integer(args_line[[30]])
+}
+args
+
 in.dir <- file.path(args$outdir,args$pairs_dir)
 
 ## set other args
@@ -487,31 +526,33 @@ save(list=tmp, file=paste0(outfile.base,'-rep_',r, '_stanin.RData') )
 # save stan_data object
 rstan::stan_rdump( names(stan_data), file=paste0(outfile.base,'-rep_',r, '_cmdstanin.R'), envir=list2env(stan_data))
 
-# compile stan model ----
-options(mc.cores = parallel::detectCores())
-sim_mixture_compiled <- cmdstanr::cmdstan_model(args$file_stanModel,
-                                                force_recompile = TRUE,
-                                                include_paths = dirname(args$file_stanModel)
-)
+if(args$local==1){
+  # compile stan model ----
+  options(mc.cores = parallel::detectCores())
+  sim_mixture_compiled <- cmdstanr::cmdstan_model(args$file_stanModel,
+                                                  force_recompile = TRUE,
+                                                  include_paths = dirname(args$file_stanModel)
+  )
 
 
-# run Stan ----
-options(mc.cores=parallel::detectCores())
+  # run Stan ----
+  options(mc.cores=parallel::detectCores())
 
-# run Stan using cmdstan
-model_fit <- sim_mixture_compiled$sample(
-  data = stan_data,
-  iter_warmup = 5e2,
-  iter_sampling = 2e3,
-  refresh = 100,
-  parallel_chains = 4,
-  chains = 4,
-  adapt_delta = 0.9,
-  save_warmup = TRUE,
-  init = function() list(y_mix=y_mix)
-)
+  # run Stan using cmdstan
+  model_fit <- sim_mixture_compiled$sample(
+    data = stan_data,
+    iter_warmup = 5e2,
+    iter_sampling = 2e3,
+    refresh = 100,
+    parallel_chains = 4,
+    chains = 4,
+    adapt_delta = 0.9,
+    save_warmup = TRUE,
+    init = function() list(y_mix=y_mix)
+  )
 
-tmp <- paste0(outfile.base,'-fitted_stan_model.rds')
-cat("\n Save fitted data to file ", tmp , "\n")
-model_fit$save_object(file = tmp)
+  tmp <- paste0(outfile.base,'-fitted_stan_model.rds')
+  cat("\n Save fitted data to file ", tmp , "\n")
+  model_fit$save_object(file = tmp)
 
+}
