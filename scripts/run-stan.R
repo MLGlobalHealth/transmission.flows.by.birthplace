@@ -87,15 +87,21 @@ in.dir <- file.path(args$outdir,args$pairs_dir)
 args$file_stanModel <- file.path(args$source_dir, 'stan_model_files',paste0(args$stanModelFile,'.stan'))
 tmp <- Sys.getenv("PBS_JOBID")
 args$job_id <- ifelse(tmp != '', tmp, as.character(abs(round(rnorm(1) * 1e6))) )
-args$job_dir <- args$outdir
-if(args$local==1) args$job_dir <- file.path(args$outdir,paste0(args$stanModelFile,'-',args$job_tag,'-',args$job_id))
+#args$job_dir <- args$outdir
+#if(args$local==1)
+args$job_dir <- file.path(args$outdir,paste0(args$stanModelFile,'-',args$job_tag,'-',args$job_id))
 args$savedata <- TRUE
-if (grepl("\\[1\\]", args$job_id))
-  args$savedata <- TRUE
+if (grepl("\\[1\\]", args$job_id))  args$savedata <- TRUE
 
+## make job dir
 out.dir <- args$job_dir
-if(args$local==1) dir.create( out.dir )
+#if(args$local==1)
+dir.create( out.dir )
 outfile.base <- file.path(out.dir, paste0(args$stanModelFile,"-",args$job_tag))
+if(args$local==0) outfile.base <- file.path(out.dir, paste0(args$stanModelFile,"-",args$job_tag,'-',args$job_id))
+
+## save input args
+saveRDS( args, file=file.path(args$job_dir, paste0(basename(args$job_dir), '_args.RDS')))
 
 r <- 1
 
