@@ -136,7 +136,7 @@ for(i in seq_len(nrow(args)))
     #	clean up any existing model code
     cmd <- paste0(cmd, 'rm ', file.path('$CWD',paste0(args$stanModelFile[i],'.*')), ' \n')
     #	copy stan model file
-    cmd	<- paste0(cmd, 'cp -R ',file.path(args$source_dir[i], 'stan-model-files',paste0(args$stanModelFile[i],'.stan')),' .\n')
+    cmd	<- paste0(cmd, 'cp -R ',file.path(args$source_dir[i], 'stan_model_files',paste0(args$stanModelFile[i],'.stan')),' .\n')
     #	build model
     cmd <- paste0(cmd, 'cd ', args$cmdstan_dir[i], '\n')
     cmd <- paste0(cmd, 'make STAN_THREADS=TRUE ', file.path('$CWD',args$stanModelFile[i]), ' \n')
