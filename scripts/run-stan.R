@@ -81,7 +81,11 @@ if(length(args_line) > 0)
 }
 args
 
-in.dir <- file.path(args$outdir,args$pairs_dir)
+if(args$local==1){
+  in.dir <- file.path(args$outdir,args$pairs_dir)
+}else{
+  in.dir <- file.path(args$outdir,args$job_tag)
+}
 
 ## set other args
 args$file_stanModel <- file.path(args$source_dir, 'stan_model_files',paste0(args$stanModelFile,'.stan'))
@@ -531,9 +535,14 @@ tmp <- tmp[!grepl('^.__|^\\.|^model$',tmp)]
 save(list=tmp, file=paste0(outfile.base,'-rep_',r, '_stanin.RData') )
 
 # save stan_data object
-rstan::stan_rdump( names(stan_data), file=paste0(outfile.base,'-rep_',r, '_cmdstanin.R'), envir=list2env(stan_data))
+#rstan::stan_rdump( names(stan_data), file=paste0(outfile.base,'-rep_',r, '_cmdstanin.R'), envir=list2env(stan_data))
 
-if(args$local==1){
+# save stan.data object
+if(args$cmdstan){
+  rstan::stan_rdump( names(stan_init), file=file.path(args$job_dir, paste0(basename(args$job_dir), '_cmdstaninit.R')), envir=list2env(stan_init))
+  rstan::stan_rdump( names(stan.data), file=file.path(args$job_dir, paste0(basename(args$job_dir), '_cmdstanin.R')), envir=list2env(stan.data))
+} else{
+
   # compile stan model ----
   options(mc.cores = parallel::detectCores())
   sim_mixture_compiled <- cmdstanr::cmdstan_model(args$file_stanModel,
