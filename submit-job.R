@@ -41,7 +41,7 @@ if(1)
     script_converting_file = "scripts/stan-convert-csv-to-rda.r",
     #stanModelFile = 'mm_sigHierG_bgUnif_piVanilla_220408b', # vanilla model
     #stanModelFile = 'mm_sigHierG_bgUnif_piReg_230111b', # covariate model
-    stanModelFile = 'mm_bgUnif_piGP_221027b', # 2D HSGP model
+    stanModelFile = 'mm_bgUnif_piGP_221027b_hpc', # 2D HSGP model
     #stanModelFile = 'mm_bgUnif_pi1DGP_Ams_230224', # 1D HSGP model
     #stanModelFile = 'mm_bgUnif_pi1DGP_Ams_230224b', # 2 * 1D HSGP model
     analysis= 'analysis_220713',
