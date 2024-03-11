@@ -73,7 +73,7 @@ if(length(args_line) > 0)
   args[['cmdstan']] <- args_line[[16]]
   args[['pairs_dir']] <- args_line[[18]]
   args[['clock_model']] <- args_line[[20]]
-  args[['time_period']] <- as.integer(args_line[[22]])
+  args[['time_period']] <- args_line[[22]]
   args[['m1']] <- as.integer(args_line[[24]])
   args[['m2']] <- as.integer(args_line[[26]])
   args[['B']] <- as.integer(args_line[[28]])
@@ -98,7 +98,8 @@ out.dir <- args$job_dir
 #if(args$local==1)
 dir.create( out.dir )
 outfile.base <- file.path(out.dir, paste0(args$stanModelFile,"-",args$job_tag))
-if(args$local==0) outfile.base <- file.path(out.dir, paste0(args$stanModelFile,"-",args$job_tag,'-',args$job_id))
+if(args$local==0) outfile.base <- file.path(args$job_dir, paste0(basename(args$job_dir)))
+#outfile.base <- file.path(out.dir, paste0(args$stanModelFile,"-",args$job_tag,'-',args$job_id))
 
 ## save input args
 saveRDS( args, file=file.path(args$job_dir, paste0(basename(args$job_dir), '_args.RDS')))
