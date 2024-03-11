@@ -467,7 +467,7 @@ for(a in 1:stan_data$S){
   stan_data$idx_rec[a,] <- as.numeric(do$TO_AGE_GP_2==a)
 }
 
-if(grepl('_agesrcrec_',args$job_tag) | args$stanModelFile=='mm_bgUnif_piGP_221027b'){
+if(grepl('_agesrcrec_',args$job_tag) | grepl('mm_bgUnif_piGP_221027b',args$stanModelFile)){
   tmp <- data.table(FROM_AGE_STD = sort(unique(age_idx_std)))
   tmp[, FROM_AGE_INT := seq_len(nrow(tmp))]
   do <- merge(do,tmp,by='FROM_AGE_INT',all.x=T)
