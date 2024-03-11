@@ -186,8 +186,7 @@ for(i in seq_len(nrow(args)))
 
   #	general housekeeping
   cmd 	<- paste0( cmd, 'echo "----------- Copy files to out directory: ------------"\n')
-  tmpdir2	<- file.path(args$out_dir[i], paste0(args$stanModelFile[i],'-',args$job_tag[i]),
-                       args$out_dir[i], paste0(args$stanModelFile[i],'-',args$job_tag[i]))
+  tmpdir2	<- file.path(args$out_dir[i], paste0(args$stanModelFile[i],'-',args$job_tag[i]))
   if(i==1)
   {
     dir.create(tmpdir2)
