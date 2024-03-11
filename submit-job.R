@@ -37,7 +37,7 @@ if(1)
     in_dir='/rds/general/project/ratmann_roadmap_data_analysis/live',
     out_dir= '/rds/general/project/ratmann_roadmap_data_analysis/live/transmission_sources',
     script_make_pairs= 'scripts/formulate-Amsterdam-pairs.R',
-    script_file= 'run-stan.R',
+    script_file= 'scripts/run-stan.R',
     script_converting_file = "scripts/stan-convert-csv-to-rda.r",
     #stanModelFile = 'mm_sigHierG_bgUnif_piVanilla_220408b', # vanilla model
     #stanModelFile = 'mm_sigHierG_bgUnif_piReg_230111b', # covariate model
