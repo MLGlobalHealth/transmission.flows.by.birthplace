@@ -76,7 +76,7 @@ if(1)
   set(args, NULL, 'dummy', NULL)
 }
 
-if(args$bs_analysis==1){
+if(args$bs_tsi==1){
   tsi_seed <- abs(round(rnorm(1) * 1e6)) # set same seed across chains for resampling pairs
 }
 
