@@ -538,7 +538,7 @@ save(list=tmp, file=paste0(outfile.base,'-rep_',r, '_stanin.RData') )
 #rstan::stan_rdump( names(stan_data), file=paste0(outfile.base,'-rep_',r, '_cmdstanin.R'), envir=list2env(stan_data))
 
 # save stan.data object
-if(args$cmdstan){
+if(args$cmdstan==1){
   rstan::stan_rdump( names(stan_init), file=file.path(args$job_dir, paste0(basename(args$job_dir), '_cmdstaninit.R')), envir=list2env(stan_init))
   rstan::stan_rdump( names(stan.data), file=file.path(args$job_dir, paste0(basename(args$job_dir), '_cmdstanin.R')), envir=list2env(stan.data))
 } else{
