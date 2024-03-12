@@ -60,7 +60,8 @@ if(1)
     local = 0,
     m1 = 24,
     m2 = 24,
-    B = 1.2
+    B = 1.2,
+    bs_tsi = 0 # for bootstrap resampling TSIs
   )
 }
 
@@ -73,6 +74,10 @@ if(1)
   args[, dummy:= 1L]
   args <- merge(args, tmp, by='dummy')
   set(args, NULL, 'dummy', NULL)
+}
+
+if(args$bs_analysis==1){
+  tsi_seed <- abs(round(rnorm(1) * 1e6)) # set same seed across chains for resampling pairs
 }
 
 # make commands
@@ -98,7 +103,8 @@ for(i in seq_len(nrow(args)))
                     ' -clock_model ', args$clock_model[i],'',
                     ' -jobtag "', args$job_tag[i],'"',
                     ' -trsm "', args$trsm[i],'"',
-                    ' -seed ', args$seed[i],' '
+                    ' -seed ', tsi_seed,'',
+                    ' -bs_tsi ', bs_tsi[i],' '
   )
   cmd    	<- paste0(cmd, tmp, '\n')
 
@@ -142,7 +148,8 @@ for(i in seq_len(nrow(args)))
     cmd <- paste0(cmd, 'make STAN_THREADS=TRUE ', file.path('$CWD',args$stanModelFile[i]), ' \n')
     cmd <- paste0(cmd, 'cd $CWD\n')
     #	set up env variables
-    cmd <- paste0( cmd, 'JOB_DIR=$(ls -d "',tmpdir,'"/*/)\n')
+    #cmd <- paste0( cmd, 'JOB_DIR=$(ls -d "',tmpdir,'"/*/)\n') # lists all directories in tmpdir
+    cmd <- paste0( cmd, 'JOB_DIR=$(ls -d "',tmpdir,'mm"*/)\n') # only find directories starting with mm (prefix to stan model name) i.e. not pairs directory
     cmd <- paste0( cmd, 'JOB_DIR=${JOB_DIR%?}\n')
     cmd <- paste0( cmd, 'JOB_DIR_NAME=${JOB_DIR##*/}\n')
     cmd <- paste0( cmd, 'SCRIPT_DIR=',args$source_dir[i],'\n')

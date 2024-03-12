@@ -70,7 +70,7 @@ if(length(args_line) > 0)
   args[['outdir']] <- args_line[[10]]
   args[['job_tag']] <- args_line[[12]]
   args[['trsm']] <- args_line[[14]]
-  args[['cmdstan']] <- args_line[[16]]
+  args[['cmdstan']] <- as.integer(args_line[[16]])
   args[['pairs_dir']] <- args_line[[18]]
   args[['clock_model']] <- args_line[[20]]
   args[['time_period']] <- args_line[[22]]
@@ -539,8 +539,8 @@ save(list=tmp, file=paste0(outfile.base,'-rep_',r, '_stanin.RData') )
 
 # save stan.data object
 if(args$cmdstan==1){
-  rstan::stan_rdump( names(stan_init), file=file.path(args$job_dir, paste0(basename(args$job_dir), '_cmdstaninit.R')), envir=list2env(stan_init))
-  rstan::stan_rdump( names(stan.data), file=file.path(args$job_dir, paste0(basename(args$job_dir), '_cmdstanin.R')), envir=list2env(stan.data))
+  #rstan::stan_rdump( names(stan_init), file=file.path(args$job_dir, paste0(basename(args$job_dir), '_cmdstaninit.R')), envir=list2env(stan_init))
+  rstan::stan_rdump( names(stan_data), file=file.path(args$job_dir, paste0(basename(args$job_dir), '_cmdstanin.R')), envir=list2env(stan_data))
 } else{
 
   # compile stan model ----

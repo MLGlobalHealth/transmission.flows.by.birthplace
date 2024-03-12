@@ -22,11 +22,12 @@ args <- list(
   source_dir ='/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace',
   #indir = '/Users/alexb/Documents/Roadmap/refactor_code',
   indir = '/Users/alexb/Box Sync/Roadmap',
-  analysis <- 'analysis_220713',
-  results <- 'update_blace_230714_MSM-2010_2021',
-  analysis <- 'analysis_220713',
-  clock_model <- '/Users/alexb/Box Sync/Roadmap/source_attribution/molecular_clock/hierarchical',
-  trsm='MSM'
+  analysis = 'analysis_220713',
+  results = 'update_blace_230714_MSM-2010_2021',
+  analysis = 'analysis_220713',
+  clock_model = '/Users/alexb/Box Sync/Roadmap/source_attribution/molecular_clock/hierarchical',
+  trsm='MSM',
+  bs_tsi=0
 )
 
 
@@ -42,6 +43,7 @@ if(length(args_line) > 0)
   stopifnot(args_line[[11]]=='-jobtag')
   stopifnot(args_line[[13]]=='-trsm')
   stopifnot(args_line[[15]]=='-seed')
+  stopifnot(args_line[[17]]=='-bs_tsi')
 
   args <- list()
   args[['source_dir']] <- args_line[[2]]
@@ -52,10 +54,13 @@ if(length(args_line) > 0)
   args[['results']] <- args_line[[12]]
   args[['trsm']] <- args_line[[14]]
   args[['seed']] <- as.integer(args_line[[16]])
+  args[['bs_tsi']] <- as.integer(args_line[[18]])
 }
 args
 
 source(file.path(args$source_dir,'R/functions.R'))
+
+set.seed(args$seed) # set seed
 
 #out.dir <- file.path('~/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam',args$results)
 out.dir <- file.path(args$out.dir,args$results)
@@ -81,6 +86,11 @@ dinf <- unique(dinf)
 dinf <- merge(dinf,subset(dind,select=c('PATIENT','CITY','SEQ','TRANSM')),
                                                 by.x='TO_SEQUENCE_ID',by.y='PATIENT',all.x=T)
 dinf[, SEQ:= TO_SEQUENCE_ID %in% ds$PATIENT]
+
+if(args$bs_tsi==1){
+  # for bootstrap analyses, resample TSIs from credible intervals
+  dinf[!is.na(SER_TO_DIAG), SER_TO_DIAG:= runif(.N,SER_TO_DIAG_LL,SER_TO_DIAG_UL)]
+}
 
 meta_data <- readRDS(file.path(args$source_dir,'data_Ams',args$analysis,'meta_data_mg_country.rds'))
 setnames(meta_data,"ID","TO_SEQUENCE_ID")
