@@ -149,7 +149,7 @@ for(i in seq_len(nrow(args)))
     cmd <- paste0(cmd, 'cd $CWD\n')
     #	set up env variables
     #cmd <- paste0( cmd, 'JOB_DIR=$(ls -d "',tmpdir,'"/*/)\n') # lists all directories in tmpdir
-    cmd <- paste0( cmd, 'JOB_DIR=$(ls -d "',tmpdir,'mm"*/)\n') # only find directories starting with mm (prefix to stan model name) i.e. not pairs directory
+    cmd <- paste0( cmd, 'JOB_DIR=$(ls -d "',tmpdir,'/mm"*/)\n') # only find directories starting with mm (prefix to stan model name) i.e. not pairs directory
     cmd <- paste0( cmd, 'JOB_DIR=${JOB_DIR%?}\n')
     cmd <- paste0( cmd, 'JOB_DIR_NAME=${JOB_DIR##*/}\n')
     cmd <- paste0( cmd, 'SCRIPT_DIR=',args$source_dir[i],'\n')
