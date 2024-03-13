@@ -104,7 +104,7 @@ for(i in seq_len(nrow(args)))
                     ' -jobtag "', args$job_tag[i],'"',
                     ' -trsm "', args$trsm[i],'"',
                     ' -seed ', tsi_seed,'',
-                    ' -bs_tsi ', arg$bs_tsi[i],' '
+                    ' -bs_tsi ', args$bs_tsi[i],' '
   )
   cmd    	<- paste0(cmd, tmp, '\n')
 
