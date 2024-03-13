@@ -142,11 +142,6 @@ generated quantities{
   vector[2] den_one;
   vector<lower=0,upper=1>[N] tpair_prob;
   vector<lower=0,upper=1>[N] tpair_prob_w;
-  row_vector<lower=0,upper=1>[N] idx;
-  matrix<lower=0>[S,S] flows; //rows=sources
-  matrix<lower=0>[S,S] pflows; // prop. total flows between groups
-  matrix<lower=0>[S,S] pflows_to; // prop. flows within recipients B from each source
-  vector<lower=0>[S] pflows_from; // prop. flows from sources A
 
   for (i in 1:N)
   {
@@ -201,32 +196,5 @@ generated quantities{
     }else{
         tpair_prob_w[i] = exp(num-log_sum_exp(den));
     }
-
-    tpair_prob[i] = exp(
-          gamma_lpdf(y[i] | tpair_alpha[i], tpair_beta[i]) +
-          log(y_mix[i]) -
-          (
-            log_mix( y_mix[i],
-              gamma_lpdf(y[i] | tpair_alpha[i], tpair_beta[i]),
-              unif_lpdf
-              )
-          )
-        );
-
-  }
-  for(a in 1:S){
-    for(b in 1:S){
-        idx = (idx_src[a,] .* idx_rec[b,]);
-        flows[a,b] = idx * tpair_prob_w;
-      }
-  }
-    pflows = flows/sum(flows[:,:]);
-  for(a in 1:S){
-    for(b in 1:S){
-        pflows_to[a,b] = flows[a,b]/sum(flows[:,b]);
-    }
-  }
-  for(a in 1:S){
-    pflows_from[a] = sum(flows[a,:])/sum(flows);
   }
 }
