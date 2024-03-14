@@ -45,8 +45,9 @@ if(1)
     #stanModelFile = 'mm_bgUnif_pi1DGP_Ams_230224', # 1D HSGP model
     #stanModelFile = 'mm_bgUnif_pi1DGP_Ams_230224b', # 2 * 1D HSGP model
     analysis= 'analysis_220713',
-    pairs_dir = 'agegps_sensanalysis_210216_MSM-2010_2022',
-    job_tag = 'agegps_sensanalysis_210216_MSM-2010_2022',
+    pairs_dir = 'bs_tsi_MSM-2010_2022',
+    job_tag = 'bs_tsi_MSM-2010_2022',
+    job_tag_undiagnosed = 'undiagnosed_211102-cohort_2010_2015',
     trsm = 'MSM',
     time_period='2010-2022',
     clock_model = '/rds/general/project/ratmann_roadmap_data_analysis/live/transmission_sources/molecular_clock/hierarchical',
@@ -56,7 +57,6 @@ if(1)
     cmdstan = 1L,
     seed = 42,
     chain = 1,
-    reps = 1,
     local = 0,
     m1 = 24,
     m2 = 24,
@@ -203,7 +203,57 @@ for(i in seq_len(nrow(args)))
   cmd		<- paste0(cmd, 'chmod -R g+rw ', tmpdir2,'\n')
 
   # create post-processing shell script for central analyses
-# add pp script here
+
+  if(i==1)
+  {
+    cmd2 <- make.PBS.header( hpc.walltime=23,
+                             hpc.select=1,
+                             hpc.nproc=48,
+                             hpc.mem= "124gb",
+                             hpc.load= "module load anaconda3/personal\nsource activate src",
+                             hpc.q=NA,
+                             hpc.array= 1)
+    cmd2 <- paste0(cmd2,'\n')
+    # set up env variables
+    cmd2 <- paste0(cmd2,'SCRIPT_DIR=',args$source_dir[i],'\n',
+                   'IN_DIR=',args$in_dir[i],'\n',
+                   'OUT_DIR=',tmpdir2,'\n',
+                   'JOB_TAG=',args$job_tag[i],'\n',
+                   'STAN_MODEL_FILE=',args$stanModelFile[i],'\n',
+                   'NUMB_CHAINS=', hmc_chains_n,'\n',
+                   'UNDIAGNOSED=', paste0(args$outdir[i],args$job_tag_undiagnosed[i]),'\n',
+                   'JOB_TAG_UNDIAGNOSED=', args$job_tag_undiagnosed,'\n',
+                   'OVERWRITE=0\n'
+    )
+    # save posterior samples
+    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','R','post-processing-save-posterior-samples.R'),
+                  ' -source_dir $SCRIPT_DIR -stanModelFile $STAN_MODEL_FILE -outdir $OUT_DIR -job_tag $JOB_TAG -numb_chains $CHAINS -trsm $TRSM')
+    cmd2 <- paste0(cmd2,tmp,'\n')
+    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','R','post-processing-assess-mixing.R'),
+                  ' -source_dir $SCRIPT_DIR -stanModelFile $STAN_MODEL_FILE -outdir $OUT_DIR -job_tag $JOB_TAG -local $LOCAL')
+    cmd2 <- paste0(cmd2,tmp,'\n')
+    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','R','post-processing-sampling-prob-incident-cases.R'),
+                  ' -source_dir $SCRIPT_DIR -stanModelFile $STAN_MODEL_FILE -indir $IN_DIR -outdir $OUT_DIR -job_tag $JOB_TAG -undiagnosed $UNDIAGNOSED -job_tag_undiag $JOB_TAG_UNDIAGNOSED')
+    cmd2 <- paste0(cmd2,tmp,'\n')
+    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','R','post-processing-save-flows.R'),
+                  ' -source_dir $SCRIPT_DIR -indir $IN_DIR -outdir $OUT_DIR')
+    cmd2 <- paste0(cmd2,tmp,'\n')
+    # write submission file
+    post.processing.file <- file.path(tmpdir2, 'post_processing.sh')
+    cat(cmd2, file=post.processing.file)
+    # set permissions
+    Sys.chmod(post.processing.file, mode='644')
+  }
+  #	schedule post-processing
+  cmd		<- paste0( cmd, 'echo "----------- Post-processing: ------------"\n')
+  tmp		<- paste("if [ $(find ",tmpdir2," -name '*_stanout.RData' | wc -l) -ge ",hmc_chains_n," ]; then\n",sep='')
+  cmd		<- paste(cmd,tmp,sep='')
+  post.processing.file <- file.path(tmpdir2, 'post_processing.sh')
+  cmd 	<- paste0(cmd, '\tcd ', dirname(post.processing.file),'\n')
+  cmd 	<- paste0(cmd,'\tqsub ', basename(post.processing.file),'\n')
+  cmd		<- paste0(cmd,"fi\n")
+  cmd		<- paste(cmd, "rm -rf $CWD/", basename(args$source_dir[i]),'\n',sep='')
+  cat(cmd)
   cmds[[i]]	<- cmd
 }
 if(args$cmdstan[1]==0)
