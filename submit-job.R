@@ -222,7 +222,7 @@ for(i in seq_len(nrow(args)))
                    'STAN_MODEL_FILE=',args$stanModelFile[i],'\n',
                    'NUMB_CHAINS=', hmc_chains_n,'\n',
                    'UNDIAGNOSED=', paste0(args$outdir[i],args$job_tag_undiagnosed[i]),'\n',
-                   'JOB_TAG_UNDIAGNOSED=', args$job_tag_undiagnosed,'\n',
+                   'JOB_TAG_UNDIAGNOSED=', args$job_tag_undiagnosed[i],'\n',
                    'OVERWRITE=0\n'
     )
     # save posterior samples
