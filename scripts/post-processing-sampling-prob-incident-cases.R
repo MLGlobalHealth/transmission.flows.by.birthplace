@@ -72,7 +72,8 @@ stopifnot(c('args','stan_data')%in%tmp)
 # calculate sampling prop for incident cases ----
 
 ## load infection date data ----
-dinf <- data.table(read.csv(file.path('data_Ams',args$analysis,'Infection_date_est_rec.csv')))
+cat('\nReading infection date estimates...')
+dinf <- data.table(read.csv(file.path(args$indir,'transmission_sources','Infection_date_est_rec.csv')))
 setnames(dinf,c("id",'estsctodiagMedian','estsctodiagLL','estsctodiagUL'),c("TO_SEQUENCE_ID",'SER_TO_DIAG','SER_TO_DIAG_LL','SER_TO_DIAG_UL'))
 dinf <- unique(dinf)
 dinf[,DIAGNOSIS_DATE:= as.Date(dinf[,hiv_pos_d],format="%Y-%m-%d")]
