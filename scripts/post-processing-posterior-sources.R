@@ -29,11 +29,15 @@ if(length(args_line) > 0)
   stopifnot(args_line[[1]]=='-source_dir')
   stopifnot(args_line[[3]]=='-indir')
   stopifnot(args_line[[5]]=='-outdir')
+  stopifnot(args_line[[7]]=='-stanModelFile')
+  stopifnot(args_line[[9]]=='-job_tag')
 
   args_dir <- list()
   args_dir[['source_dir']] <- args_line[[2]]
   args_dir[['indir']] <- args_line[[4]]
   args_dir[['outdir']] <- args_line[[6]]
+  args_dir[['stanModelFile']] <- args_line[[8]]
+  args_dir[['job_tag']] <- args_line[[10]]
 }
 args_dir
 

@@ -240,7 +240,7 @@ for(i in seq_len(nrow(args)))
                   ' -source_dir $SCRIPT_DIR -stanModelFile $STAN_MODEL_FILE -indir $IN_DIR -outdir $OUT_DIR -job_tag $JOB_TAG -undiagnosed $UNDIAGNOSED -job_tag_undiag $JOB_TAG_UNDIAGNOSED -analysis $ANALYSIS')
     cmd2 <- paste0(cmd2,tmp,'\n')
     tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','post-processing-posterior-sources.R'),
-                  ' -source_dir $SCRIPT_DIR -indir $IN_DIR -outdir $OUT_DIR')
+                  ' -source_dir $SCRIPT_DIR -indir $IN_DIR -outdir $OUT_DIR -stanModelFile $STAN_MODEL_FILE -job_tag $JOB_TAG')
     cmd2 <- paste0(cmd2,tmp,'\n')
     # write submission file
     post.processing.file <- file.path(tmpdir2, 'post_processing.sh')
