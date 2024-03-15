@@ -90,6 +90,8 @@ dinf[,YEAR_OF_INF_EST := year(EST_INF_DATE)]
 ### merge in patient metadata ----
 cat('\nReading patient metadata...')
 load(infile.meta)
+load(infile.seq)
+
 dind <- data.table(dind)
 dind[, SEQ:= PATIENT %in% ds$PATIENT]
 dinf <- merge(dinf,subset(dind,select=c('PATIENT','CITY','TRANSM','LOC_BIRTH','ORIGIN','SEQ')),
