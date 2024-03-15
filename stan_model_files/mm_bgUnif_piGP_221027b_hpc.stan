@@ -140,7 +140,6 @@ generated quantities{
   int k;
   real num;     // create vector of appropriate size for all npairs
   vector[2] den_one;
-  vector<lower=0,upper=1>[N] tpair_prob;
   vector<lower=0,upper=1>[N] tpair_prob_w;
 
   for (i in 1:N)
