@@ -28,6 +28,7 @@ if(length(args_line) > 0)
 	stopifnot(args_line[[7]]=='-job_tag')
 	stopifnot(args_line[[9]]=='-numb_chains')
 	stopifnot(args_line[[11]]=='-trsm')
+
 	args_dir <- list()
 	args_dir[['source_dir']] <- args_line[[2]]
 	args_dir[['stanModelFile']] <- args_line[[4]]
