@@ -30,24 +30,27 @@ if(length(args_line) > 0)
   stopifnot(args_line[[3]]=='-indir')
   stopifnot(args_line[[5]]=='-outdir')
 
-  args <- list()
-  args[['source_dir']] <- args_line[[2]]
-  args[['indir']] <- args_line[[4]]
-  args[['outdir']] <- args_line[[6]]
+  args_dir <- list()
+  args_dir[['source_dir']] <- args_line[[2]]
+  args_dir[['indir']] <- args_line[[4]]
+  args_dir[['outdir']] <- args_line[[6]]
 }
-args
+args_dir
 
 cat(" \n --------------------------------  load data -------------------------------- \n")
 
 ## read stanin
 cat('\nReading Stan input data...')
-infile.stanin <- list.files(args$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
+infile.stanin <- list.files(args_dir$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
 stopifnot(length(infile.stanin)>0)
 stopifnot(length(infile.stanin)<=1)
-tmp <- load(file.path(args$outdir, infile.stanin))
+tmp <- load(file.path(args_dir$outdir, infile.stanin))
 stopifnot(c('args','stan_data')%in%tmp)
 
-infile.seq <-	file.path(args$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
+outfile.base <- paste0(args_dir$outdir, "/",
+                       args_dir$stanModelFile , "-", args_dir$job_tag)
+
+infile.seq <-	file.path(args_dir$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
 infile.po.tpairprob <- paste0(outfile.base,'-stanout-tpairprobw-gqs.RDS')
 infile.sampling.prob <- paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS')
 

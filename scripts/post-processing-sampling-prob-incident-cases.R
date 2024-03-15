@@ -7,6 +7,7 @@ require(grid)
 require(dplyr)
 require(tidyr)
 require(lubridate)
+require(reshape)
 
 if (1)
 {
@@ -70,6 +71,9 @@ stopifnot(length(infile.stanin)>0)
 stopifnot(length(infile.stanin)<=1)
 tmp <- load(file.path(args_dir$outdir, infile.stanin))
 stopifnot(c('args','stan_data')%in%tmp)
+
+outfile.base <- paste0(args_dir$outdir, "/",
+                       args_dir$stanModelFile , "-", args_dir$job_tag)
 
 # calculate sampling prop for incident cases ----
 
