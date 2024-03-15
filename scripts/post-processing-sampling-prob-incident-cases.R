@@ -63,8 +63,8 @@ infile.seq <-	file.path(args$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331
 infile.bas <- file.path(args$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
 infile.meta <- file.path(args$indir, args$analysis, 'misc', '220713_sequence_labels.rda')
 
-outdir_undiag <- file.path(args$indir,args$undiagnosed)
-job_tag_undiag <- args$job_tag_undiag
+#outdir_undiag <- file.path(args$indir,'transmission_sources',args$undiagnosed)
+#job_tag_undiag <- args$job_tag_undiag
 
 ## read stanin
 cat('\nReading Stan input data...')
@@ -115,11 +115,11 @@ dinf[ORIGIN=="NL", LOC_BIRTH_POS:="Netherlands"]
 
 cat('\nLoad posterior from undiagnosed model...')
 
-samples <- readRDS(file=file.path(outdir_undiag, paste0('samples_',job_tag_undiag,"_",args$trsm,'.rds')))
+samples <- readRDS(file=file.path(args$undiagnosed, paste0('samples_',args$job_tag_undiag,"_",args$trsm,'.rds')))
 
 cat('\nLoading geographic region mapping...')
 
-dmap <- readRDS(file=file.path(outdir_undiag, paste0("mapping_georeg_id.RDS")))
+dmap <- readRDS(file=file.path(args$undiagnosed, paste0("mapping_georeg_id.RDS")))
 
 shape_msm <- data.table(reshape::melt(samples$wb_shape_grp))
 setnames(shape_msm,c('iterations','Var.2'),c('iter','mg'))
