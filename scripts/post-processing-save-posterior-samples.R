@@ -48,12 +48,12 @@ str(args_dir)
 dout <- data.table(F=list.files(args_dir$outdir, pattern='*_stanout.RData$', recursive=TRUE, full.name=TRUE))
 cat(paste("\n", nrow(dout),"/",args_dir$numb_chains, "chains are finished \n"))
 
-outfile.base <- unique( dout[, file.path(dirname(dirname(F)), paste0(args_dir$stanModelFile,'-',args_dir$job_tag))] )
-stopifnot(length(outfile.base)==1 )
-
 #	load all input variables for this analysis run
 z <- load( gsub('pbs_stanout.RData','pbs_stanin.RData',dout[1,F]) )
 str(args)
+
+outfile.base <- unique( dout[, file.path(dirname(dirname(F)), paste0(args_dir$stanModelFile,'-',args_dir$job_tag))] )
+stopifnot(length(outfile.base)==1 )
 
 cat(" \n -------------------------------- load: fit -------------------------------- \n")
 #	reading job output, merge separate stanfits into one consolidated stanfit object
