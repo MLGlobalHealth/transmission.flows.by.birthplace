@@ -6,6 +6,7 @@ require(scales)
 require(grid)
 require(dplyr)
 require(tidyr)
+require(lubridate)
 
 if (1)
 {
@@ -40,6 +41,7 @@ if(length(args_line) > 0)
   stopifnot(args_line[[9]]=='-job_tag')
   stopifnot(args_line[[11]]=='-undiagnosed')
   stopifnot(args_line[[13]]=='-job_tag_undiag')
+  stopifnot(args_line[[15]]=='-analysis')
 
   args <- list()
   args[['source_dir']] <- args_line[[2]]
@@ -49,10 +51,11 @@ if(length(args_line) > 0)
   args[['job_tag']] <- args_line[[10]]
   args[['undiagnosed']] <- args_line[[12]]
   args[['job_tag_undiag']] <- args_line[[14]]
+  args[['analysis']] <- args_line[[16]]
 }
 args
 
-source(file.path(args_dir$source_dir, 'R', 'functions.R'))
+source(file.path(args$source_dir, 'R', 'functions.R'))
 
 cat(" \n --------------------------------  with arguments -------------------------------- \n")
 

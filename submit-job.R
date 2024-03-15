@@ -224,6 +224,8 @@ for(i in seq_len(nrow(args)))
                    'UNDIAGNOSED=', paste0(args$outdir[i],args$job_tag_undiagnosed[i]),'\n',
                    'JOB_TAG_UNDIAGNOSED=', args$job_tag_undiagnosed[i],'\n',
                    'TRSM=', args$trsm[i], '\n',
+                   'ANALYSIS=', args$analysis[i], '\n',
+                   'LOCAL=', args$local[i], '\n',
                    'OVERWRITE=0\n'
     )
     # save posterior samples
@@ -234,7 +236,7 @@ for(i in seq_len(nrow(args)))
                   ' -source_dir $SCRIPT_DIR -stanModelFile $STAN_MODEL_FILE -outdir $OUT_DIR -job_tag $JOB_TAG -local $LOCAL')
     cmd2 <- paste0(cmd2,tmp,'\n')
     tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','post-processing-sampling-prob-incident-cases.R'),
-                  ' -source_dir $SCRIPT_DIR -stanModelFile $STAN_MODEL_FILE -indir $IN_DIR -outdir $OUT_DIR -job_tag $JOB_TAG -undiagnosed $UNDIAGNOSED -job_tag_undiag $JOB_TAG_UNDIAGNOSED')
+                  ' -source_dir $SCRIPT_DIR -stanModelFile $STAN_MODEL_FILE -indir $IN_DIR -outdir $OUT_DIR -job_tag $JOB_TAG -undiagnosed $UNDIAGNOSED -job_tag_undiag $JOB_TAG_UNDIAGNOSED -analysis $ANALYSIS')
     cmd2 <- paste0(cmd2,tmp,'\n')
     tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','post-processing-posterior-sources.R'),
                   ' -source_dir $SCRIPT_DIR -indir $IN_DIR -outdir $OUT_DIR')
