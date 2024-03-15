@@ -257,8 +257,8 @@ g_prev <- ggplot(subset(dp)) + geom_bar(aes(x=FROM_BPLACE,y=M,fill=FROM_BPLACE),
   coord_cartesian(ylim = c(0,1)) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
 if(args$overwrite){
-  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_prevalence.pdf'), g_prev, w = 23, h = 10)
-  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_prevalence.png'), g_prev, w = 16, h = 10)
+  ggsave(file = paste0(outfile.base,'-contribution_to_prevalence.pdf'), g_prev, w = 23, h = 10)
+  ggsave(file = paste0(outfile.base,'-contribution_to_prevalence.png'), g_prev, w = 16, h = 10)
 }
 
 ### plot flows by birthplace ----
@@ -294,7 +294,7 @@ po <- po[,
 po <- dcast.data.table(po, FROM_BPLACE~stat, value.var = 'q')
 setnames(po,'FROM_BPLACE','FROM_BPLACE')
 po[, TO_BPLACE:= 'Overall']
-if(args$overwrite){saveRDS(po,file=paste0(outfile.base,'-rep_',replicate,'-adjusted_flows_samplingofcases','.RDS'))}
+if(args$overwrite){saveRDS(po,file=paste0(outfile.base,'-adjusted_flows_samplingofcases','.RDS'))}
 
 po[, FROM_BPLACE:= factor(FROM_BPLACE,
                           levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
@@ -315,8 +315,8 @@ g1 <- ggplot(subset(po,TO_BPLACE=='Overall')) + geom_bar(aes(x=FROM_BPLACE,y=M,f
   coord_cartesian(ylim = c(0,1)) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
 if(args$overwrite){
-  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_flows.pdf'), g1, w = 23, h = 10)
-  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_flows.png'), g1, w = 16, h = 10)
+  ggsave(file = paste0(outfile.base,'-contribution_to_flows.pdf'), g1, w = 23, h = 10)
+  ggsave(file = paste0(outfile.base,'-contribution_to_flows.png'), g1, w = 16, h = 10)
 }
 
 ### plot flows over prevelance contributions ----
@@ -341,7 +341,7 @@ po <- po[,
 ]
 po <- dcast.data.table(po, FROM_BPLACE~stat, value.var = 'q')
 po[, TO_BPLACE:= 'Overall']
-if(args$overwrite){saveRDS(po,file=paste0(outfile.base,'-rep_',replicate,'-flows_frombplace_hivpos','.RDS'))}
+if(args$overwrite){saveRDS(po,file=paste0(outfile.base,'-flows_frombplace_hivpos','.RDS'))}
 
 pal <- pal_npg("nrc")(4)[c(1,3,4)]
 
@@ -356,8 +356,8 @@ g2 <- ggplot(subset(po,TO_BPLACE=='Overall')) +
         axis.title.x = element_blank(),
         axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9)) #+ #,
 if(args$overwrite){
-  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_flows_over_prev.pdf'), g2, w = 23, h = 10)
-  ggsave(file = paste0(outfile.base,'-rep_',replicate,'-contribution_to_flows_over_prev.png'), g2, w = 16, h = 10)
+  ggsave(file = paste0(outfile.base,'-contribution_to_flows_over_prev.pdf'), g2, w = 23, h = 10)
+  ggsave(file = paste0(outfile.base,'-contribution_to_flows_over_prev.png'), g2, w = 16, h = 10)
 }
 
 

@@ -253,7 +253,7 @@ g1 <- ggplot(subset(tmp)) + geom_bar(aes(x=TO_AGE_GP,y=pct,fill=FROM_AGE_GP),sta
   theme(legend.pos='bottom') + #,
   coord_cartesian(ylim = c(0,1)) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.1))
-ggsave(file = paste0(outfile.base,'-rep_',r,'-obs_sources_age_source.png'), g1, w = 10, h = 8)
+ggsave(file = paste0(outfile.base,'-obs_sources_age_source.png'), g1, w = 10, h = 8)
 
 tmp <- do[, list(N=length(PAIR_ID)),by=c('FROM_AGE_GP','TO_AGE_GP')]
 tmp <- tmp[, list(FROM_AGE_GP=FROM_AGE_GP,pct=N/sum(N)),by='TO_AGE_GP']
@@ -265,14 +265,14 @@ g2 <- ggplot(subset(tmp)) + geom_bar(aes(x=TO_AGE_GP,y=pct,fill=FROM_AGE_GP),sta
   coord_cartesian(ylim = c(0,1)) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.1))
 g2
-ggsave(file = paste0(outfile.base,'-rep_',r,'-obs_sources_age_source_recipient.png'), g2, w = 10, h = 8)
+ggsave(file = paste0(outfile.base,'-obs_sources_age_source_recipient.png'), g2, w = 10, h = 8)
 
 legend_t <- cowplot::get_legend(g2 + theme(legend.position = "bottom"))
 
 g <- ggarrange(g1 + rremove("xlab")+ theme(legend.position='none'),g2+ theme(legend.position='none'),ncol=2,widths=c(0.35,0.65),align='hv')
 g <- ggarrange(g, legend_t,ncol=1,heights=c(0.8,0.2))
-ggsave(file = paste0(outfile.base,'-rep_',r,'-obs_sources_age_source_recipient_panel.png'), g, w = 16, h = 8)
-ggsave(file = paste0(outfile.base,'-rep_',r,'-obs_sources_age_source_recipient_panel.pdf'), g, w = 16, h = 8)
+ggsave(file = paste0(outfile.base,'-obs_sources_age_source_recipient_panel.png'), g, w = 16, h = 8)
+ggsave(file = paste0(outfile.base,'-obs_sources_age_source_recipient_panel.pdf'), g, w = 16, h = 8)
 
 saveRDS(dps_clock,file = paste0(outfile.base,'-clock_quantiles.rds'))
 
@@ -532,10 +532,10 @@ stan_init$y_mix <- y_mix[args$chain]
 ## save image before running Stan
 tmp <- names(.GlobalEnv)
 tmp <- tmp[!grepl('^.__|^\\.|^model$',tmp)]
-save(list=tmp, file=paste0(outfile.base,'-rep_',r, '_stanin.RData') )
+save(list=tmp, file=paste0(outfile.base, '_stanin.RData') )
 
 # save stan_data object
-#rstan::stan_rdump( names(stan_data), file=paste0(outfile.base,'-rep_',r, '_cmdstanin.R'), envir=list2env(stan_data))
+#rstan::stan_rdump( names(stan_data), file=paste0(outfile.base, '_cmdstanin.R'), envir=list2env(stan_data))
 
 # save stan.data object
 if(args$cmdstan==1){

@@ -595,7 +595,7 @@ g_props <- ggplot(subset(tmp,SUBTYPE=='Non-B')) + geom_point(aes(x=YEAR_OF_INF_E
 
 
 ### plot C: time-shifting sources ----
-po <- readRDS(file=paste0(outfile.base,'-rep_',replicate,'-adjusted_flows_mwmb_byyear_samplingofcases','.RDS'))
+po <- readRDS(file=paste0(outfile.base,'-adjusted_flows_mwmb_byyear_samplingofcases','.RDS'))
 
 # for 3panel plot
 g_srcs <- ggplot(subset(po,TO_BPLACE=='Overall')) +
