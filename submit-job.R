@@ -226,16 +226,16 @@ for(i in seq_len(nrow(args)))
                    'OVERWRITE=0\n'
     )
     # save posterior samples
-    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','R','post-processing-save-posterior-samples.R'),
+    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','post-processing-save-posterior-samples.R'),
                   ' -source_dir $SCRIPT_DIR -stanModelFile $STAN_MODEL_FILE -outdir $OUT_DIR -job_tag $JOB_TAG -numb_chains $CHAINS -trsm $TRSM')
     cmd2 <- paste0(cmd2,tmp,'\n')
-    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','R','post-processing-assess-mixing.R'),
+    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','post-processing-assess-mixing.R'),
                   ' -source_dir $SCRIPT_DIR -stanModelFile $STAN_MODEL_FILE -outdir $OUT_DIR -job_tag $JOB_TAG -local $LOCAL')
     cmd2 <- paste0(cmd2,tmp,'\n')
-    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','R','post-processing-sampling-prob-incident-cases.R'),
+    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','post-processing-sampling-prob-incident-cases.R'),
                   ' -source_dir $SCRIPT_DIR -stanModelFile $STAN_MODEL_FILE -indir $IN_DIR -outdir $OUT_DIR -job_tag $JOB_TAG -undiagnosed $UNDIAGNOSED -job_tag_undiag $JOB_TAG_UNDIAGNOSED')
     cmd2 <- paste0(cmd2,tmp,'\n')
-    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','R','post-processing-save-flows.R'),
+    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','post-processing-posterior-sources.R'),
                   ' -source_dir $SCRIPT_DIR -indir $IN_DIR -outdir $OUT_DIR')
     cmd2 <- paste0(cmd2,tmp,'\n')
     # write submission file

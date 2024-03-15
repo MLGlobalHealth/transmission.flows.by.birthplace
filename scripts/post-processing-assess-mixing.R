@@ -1,5 +1,5 @@
 # assess-mixing.R
-# 
+#
 ###############################################################################
 
 cat(" \n -------------------------------- \n \n Running assess-mixing.R \n \n -------------------------------- \n")
@@ -23,27 +23,27 @@ if(0){
 }
 
 args_line <-  as.list(commandArgs(trailingOnly=TRUE))
-if(length(args_line) > 0) 
+if(length(args_line) > 0)
 {
 	stopifnot(args_line[[1]]=='-source_dir')
 	stopifnot(args_line[[3]]=='-stanModelFile')
 	stopifnot(args_line[[5]]=='-outdir')
 	stopifnot(args_line[[7]]=='-job_tag')
 	stopifnot(args_line[[9]]=='-local')
-	
+
 	args_dir <- list()
 	args_dir[['source_dir']] <- args_line[[2]]
 	args_dir[['stanModelFile']] <- args_line[[4]]
 	args_dir[['outdir']] <- args_line[[6]]
 	args_dir[['job_tag']] <- args_line[[8]]
 	args_dir[['local']] <- args_line[[10]]
-} 
+}
 
 ## start script
 cat(" \n -------------------------------- with post-processing arguments -------------------------------- \n")
 str(args_dir)
 
-outfile.base <- paste0(args_dir$out_dir, "/",
+outfile.base <- paste0(args_dir$outdir, "/",
                        args_dir$stanModelFile , "-", args_dir$job_tag)
 
 file <- paste0(outfile.base,'-stanout-fit.RDS')
@@ -51,7 +51,7 @@ cat("\n read RDS:", file)
 fit <- readRDS( file )
 
 #
-# extract neff 
+# extract neff
 #
 
 cat("\n ----------- calculate pars with small neff: start ----------- \n")
@@ -96,7 +96,7 @@ cat("\n ----------- report sampler diagnostics: end ----------- \n")
 
 
 #
-# Monitor posterior distribution 
+# Monitor posterior distribution
 #
 fit.target.pars <- c('logit_y_mix_0','gpscale','lscale[1]','lscale[2]',"lp__")
 target.pars <- names(fit)[ grepl(paste(paste0('^',fit.target.pars),collapse = '|'),names(fit)) ]
