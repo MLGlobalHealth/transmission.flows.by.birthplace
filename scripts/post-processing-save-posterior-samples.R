@@ -34,7 +34,7 @@ if(length(args_line) > 0)
 	args_dir[['stanModelFile']] <- args_line[[4]]
 	args_dir[['outdir']] <- args_line[[6]]
 	args_dir[['job_tag']] <- args_line[[8]]
-	args_dir[['numb_chains']] <- args_line[[10]]
+	args_dir[['numb_chains']] <- as.integer(args_line[[10]])
 	args_dir[['trsm']] <- args_line[[12]]
 }
 
@@ -45,27 +45,27 @@ source(file.path(args_dir$source_dir, 'R', 'functions.R'))
 cat(" \n --------------------------------  with arguments -------------------------------- \n")
 str(args_dir)
 
-do <- data.table(F=list.files(args_dir$outdir, pattern='*_stanout.RData$', recursive=TRUE, full.name=TRUE))
-cat(paste("\n", nrow(do),"/",args_dir$numb_chains, "chains are finished \n"))
+dout <- data.table(F=list.files(args_dir$outdir, pattern='*_stanout.RData$', recursive=TRUE, full.name=TRUE))
+cat(paste("\n", nrow(dout),"/",args_dir$numb_chains, "chains are finished \n"))
 
-outfile.base <- unique( do[, file.path(dirname(dirname(F)), paste0(args_dir$stanModelFile,'-',args_dir$job_tag))] )
+outfile.base <- unique( dout[, file.path(dirname(dirname(F)), paste0(args_dir$stanModelFile,'-',args_dir$job_tag))] )
 stopifnot(length(outfile.base)==1 )
 
 #	load all input variables for this analysis run
-z <- load( gsub('pbs_stanout.RData','pbs_stanin.RData',do[1,F]) )
+z <- load( gsub('pbs_stanout.RData','pbs_stanin.RData',dout[1,F]) )
 str(args)
 
 cat(" \n -------------------------------- load: fit -------------------------------- \n")
 #	reading job output, merge separate stanfits into one consolidated stanfit object
-rf <- vector('list', nrow(do))
-median_lp_ <- vector('numeric', nrow(do))
-for(i in seq_len(nrow(do)))
+rf <- vector('list', nrow(dout))
+median_lp_ <- vector('numeric', nrow(dout))
+for(i in seq_len(nrow(dout)))
 {
-	cat('Loading output in ',do[i,F],'\n')
-	z <- load(do[i,F])
+	cat('Loading output in ',dout[i,F],'\n')
+	z <- load(dout[i,F])
 	stopifnot('fit' %in% z)
 	median_lp_[i] = median(rstan:::extract(fit)$lp__)
-	if(all(rstan::summary(fit)$summary[,1] == 0) & all(is.na(rstan::summary(fit)$summary[,2]))) next
+	#if(all(rstan::summary(fit)$summary[,1] == 0) & all(is.na(rstan::summary(fit)$summary[,2]))) next
 	rf[[i]] <- fit
 }
 fit <- rstan:::sflist2stanfit(rf[lapply(rf,length)>0])
