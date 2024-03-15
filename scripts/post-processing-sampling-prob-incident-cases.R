@@ -52,13 +52,15 @@ if(length(args_line) > 0)
 }
 args
 
+source(file.path(args_dir$source_dir, 'R', 'functions.R'))
+
 cat(" \n --------------------------------  with arguments -------------------------------- \n")
 
 infile.seq <-	file.path(args$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
 infile.bas <- file.path(args$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
 infile.meta <- file.path(args$indir, args$analysis, 'misc', '220713_sequence_labels.rda')
 
-outdir_undiag <- args$undiagnosed
+outdir_undiag <- file.path(args$indir,args$undiagnosed)
 job_tag_undiag <- args$job_tag_undiag
 
 ## read stanin
@@ -83,6 +85,7 @@ dinf[,EST_INF_DATE:= format(date_decimal(EST_INF_DATE), "%Y-%m-%d")]
 dinf[,YEAR_OF_INF_EST := year(EST_INF_DATE)]
 
 ### merge in patient metadata ----
+cat('\nReading patient metadata...')
 load(infile.meta)
 dind <- data.table(dind)
 dind[, SEQ:= PATIENT %in% ds$PATIENT]
@@ -93,6 +96,8 @@ dbas[, DEATH_D := as.Date(DEATH_D,format="%Y-%m-%d")]
 dinf <- merge(dinf,subset(dbas,select=c('PATIENT','DEATH_D')),by.x='TO_SEQUENCE_ID',by.y='PATIENT',all.x=T)
 
 ## add world regions ----
+cat('\nAdding world regions...')
+
 dinf[, LOC_BIRTH_POS:="Other"]
 dinf[LOC_BIRTH %in% c("WEurope","NorthAm","Oceania"), LOC_BIRTH_POS:="W.Europe,\nN.America,Oceania"]
 dinf[LOC_BIRTH %in% c("EEurope", "CEurope"), LOC_BIRTH_POS:="E. & C. Europe"]
@@ -103,8 +108,13 @@ dinf[ORIGIN=="NL", LOC_BIRTH_POS:="Netherlands"]
 
 # calculate number diagnosed from each birth region and number with a sequence
 
+cat('\nLoad posterior from undiagnosed model...')
+
 samples <- readRDS(file=file.path(outdir_undiag, paste0('samples_',job_tag_undiag,"_",args$trsm,'.rds')))
-dmap <- readRDS(file=file.path(outdir, paste0("mapping_georeg_id.RDS")))
+
+cat('\nLoading geographic region mapping...')
+
+dmap <- readRDS(file=file.path(outdir_undiag, paste0("mapping_georeg_id.RDS")))
 
 shape_msm <- data.table(reshape::melt(samples$wb_shape_grp))
 setnames(shape_msm,c('iterations','Var.2'),c('iter','mg'))
