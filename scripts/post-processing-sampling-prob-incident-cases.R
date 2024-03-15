@@ -43,42 +43,39 @@ if(length(args_line) > 0)
   stopifnot(args_line[[13]]=='-job_tag_undiag')
   stopifnot(args_line[[15]]=='-analysis')
 
-  args <- list()
-  args[['source_dir']] <- args_line[[2]]
-  args[['stanModelFile']] <- args_line[[4]]
-  args[['indir']] <- args_line[[6]]
-  args[['outdir']] <- args_line[[8]]
-  args[['job_tag']] <- args_line[[10]]
-  args[['undiagnosed']] <- args_line[[12]]
-  args[['job_tag_undiag']] <- args_line[[14]]
-  args[['analysis']] <- args_line[[16]]
+  args_dir <- list()
+  args_dir[['source_dir']] <- args_line[[2]]
+  args_dir[['stanModelFile']] <- args_line[[4]]
+  args_dir[['indir']] <- args_line[[6]]
+  args_dir[['outdir']] <- args_line[[8]]
+  args_dir[['job_tag']] <- args_line[[10]]
+  args_dir[['undiagnosed']] <- args_line[[12]]
+  args_dir[['job_tag_undiag']] <- args_line[[14]]
+  args_dir[['analysis']] <- args_line[[16]]
 }
 args
 
-source(file.path(args$source_dir, 'R', 'functions.R'))
+source(file.path(args_dir$source_dir, 'R', 'functions.R'))
 
 cat(" \n --------------------------------  with arguments -------------------------------- \n")
 
-infile.seq <-	file.path(args$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
-infile.bas <- file.path(args$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
-infile.meta <- file.path(args$indir, args$analysis, 'misc', '220713_sequence_labels.rda')
-
-#outdir_undiag <- file.path(args$indir,'transmission_sources',args$undiagnosed)
-#job_tag_undiag <- args$job_tag_undiag
+infile.seq <-	file.path(args_dir$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
+infile.bas <- file.path(args_dir$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
+infile.meta <- file.path(args_dir$indir, args_dir$analysis, 'misc', '220713_sequence_labels.rda')
 
 ## read stanin
 cat('\nReading Stan input data...')
-infile.stanin <- list.files(args$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
+infile.stanin <- list.files(args_dir$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
 stopifnot(length(infile.stanin)>0)
 stopifnot(length(infile.stanin)<=1)
-tmp <- load(file.path(args$outdir, infile.stanin))
+tmp <- load(file.path(args_dir$outdir, infile.stanin))
 stopifnot(c('args','stan_data')%in%tmp)
 
 # calculate sampling prop for incident cases ----
 
 ## load infection date data ----
 cat('\nReading infection date estimates...')
-dinf <- data.table(read.csv(file.path(args$indir,'transmission_sources','Infection_date_est_rec.csv')))
+dinf <- data.table(read.csv(file.path(args_dir$indir,'transmission_sources','Infection_date_est_rec.csv')))
 setnames(dinf,c("id",'estsctodiagMedian','estsctodiagLL','estsctodiagUL'),c("TO_SEQUENCE_ID",'SER_TO_DIAG','SER_TO_DIAG_LL','SER_TO_DIAG_UL'))
 dinf <- unique(dinf)
 dinf[,DIAGNOSIS_DATE:= as.Date(dinf[,hiv_pos_d],format="%Y-%m-%d")]
@@ -115,11 +112,11 @@ dinf[ORIGIN=="NL", LOC_BIRTH_POS:="Netherlands"]
 
 cat('\nLoad posterior from undiagnosed model...')
 
-samples <- readRDS(file=file.path(args$undiagnosed, paste0('samples_',args$job_tag_undiag,"_",args$trsm,'.rds')))
+samples <- readRDS(file=file.path(args_dir$undiagnosed, paste0('samples_',args_dir$job_tag_undiag,"_","MSM",'.rds')))
 
 cat('\nLoading geographic region mapping...')
 
-dmap <- readRDS(file=file.path(args$undiagnosed, paste0("mapping_georeg_id.RDS")))
+dmap <- readRDS(file=file.path(args_dir$undiagnosed, paste0("mapping_georeg_id.RDS")))
 
 shape_msm <- data.table(reshape::melt(samples$wb_shape_grp))
 setnames(shape_msm,c('iterations','Var.2'),c('iter','mg'))
