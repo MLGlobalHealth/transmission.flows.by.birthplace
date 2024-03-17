@@ -69,7 +69,8 @@ cat('\nReading sampling probabilities...')
 spy <- readRDS(file=infile.sampling.prob)
 cat('\nReading posterior transmission pair probabilities...')
 po <- readRDS(file=infile.po.tpairprob)
-
+#samples <- rstan::extract(fit, inc_warmup = FALSE)
+po <- data.table(reshape::melt(po$tpair_prob_w))
 
 cat(" \n --------------------------------  add birthplace data to pairs -------------------------------- \n")
 
@@ -109,10 +110,11 @@ do[, TO_BPLACE:= factor(TO_BPLACE,
 cat(" \n --------------------------------  estimate sources by birthplace -------------------------------- \n")
 
 po <- data.table(po)
-setnames(po, colnames(po), gsub('^\\.','',colnames(po)))
-po <- melt(po, id.vars = c('chain','iteration','draw'))
-po <- data.table(po)
-po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
+#setnames(po, colnames(po), gsub('^\\.','',colnames(po)))
+#po <- melt(po, id.vars = c('chain','iteration','draw'))
+#po <- data.table(po)
+setnames(po,c('iterations','Var.2'),c('draw','PAIR_ID'))
+#po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
 tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','YEAR_OF_INF_EST'))
 po <- merge(po, tmp, by = 'PAIR_ID')
 po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
