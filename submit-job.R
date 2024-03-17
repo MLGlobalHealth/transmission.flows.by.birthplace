@@ -224,7 +224,7 @@ for(i in seq_len(nrow(args)))
                    'JOB_TAG=',args$job_tag[i],'\n',
                    'STAN_MODEL_FILE=',args$stanModelFile[i],'\n',
                    'CHAINS=', hmc_chains_n,'\n',
-                   'UNDIAGNOSED=', file.oath(args$out_dir[i],paste0(args$UndiagStanModelFile[i],'-',args$job_tag_undiagnosed[i])),'\n',
+                   'UNDIAGNOSED=', file.path(args$out_dir[i],paste0(args$UndiagStanModelFile[i],'-',args$job_tag_undiagnosed[i])),'\n',
                    'JOB_TAG_UNDIAGNOSED=', args$job_tag_undiagnosed[i],'\n',
                    'TRSM=', args$trsm[i], '\n',
                    'ANALYSIS=', args$analysis[i], '\n',
