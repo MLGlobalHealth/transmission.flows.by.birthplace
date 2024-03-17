@@ -84,7 +84,6 @@ file =paste0(outfile.base,'-stanout-pars.RDS')
 cat("\n save file:", file)
 cat("\n saving objects:", names(re))
 io_saveRDS(re, args_dir[['work_dir']], dirname(file), basename(file), check_if_saved_n=10)
-re <- NULL
 gc()
 
 cat(" \n -------------------------------- save: tpair_prob gq -------------------------------- \n")
