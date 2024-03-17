@@ -62,7 +62,8 @@ if(1)
     m1 = 24,
     m2 = 24,
     B = 1.2,
-    bs_tsi = 0 # for bootstrap resampling TSIs
+    bs_tsi = 0, # for bootstrap resampling TSIs
+    bs_phylo = 0 # for bootstrap resampled alignments
   )
 }
 
@@ -105,7 +106,8 @@ for(i in seq_len(nrow(args)))
                     ' -jobtag "', args$job_tag[i],'"',
                     ' -trsm "', args$trsm[i],'"',
                     ' -seed ', tsi_seed,'',
-                    ' -bs_tsi ', args$bs_tsi[i],' '
+                    ' -bs_tsi ', args$bs_tsi[i],' ',
+                    ' -bs_phylo ', args$bs_phylo[i],' '
   )
   cmd    	<- paste0(cmd, tmp, '\n')
 

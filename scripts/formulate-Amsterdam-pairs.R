@@ -10,7 +10,8 @@ require(ggsci)
 require(ggpubr)
 
 analysis <- 'analysis_220713'
-results <- 'update_blace_230714_MSM-2010_2021'
+#results <- 'update_blace_230714_MSM-2010_2021'
+results <- 'revisions_MSM-2010_2021'
 #results <- 'agegps_updated_criteria_210216_MSM-2010_2022'
 #results <- 'agegps_sensanalysis_210216_MSM-2010_2022'
 indir_data <- '/Users/alexb/Box Sync/Roadmap'
@@ -23,7 +24,8 @@ args <- list(
   #indir = '/Users/alexb/Documents/Roadmap/refactor_code',
   indir = '/Users/alexb/Box Sync/Roadmap',
   analysis = 'analysis_220713',
-  results = 'update_blace_230714_MSM-2010_2021',
+  #results = 'update_blace_230714_MSM-2010_2021',
+  results <- 'revisions_MSM-2010_2021',
   analysis = 'analysis_220713',
   clock_model = '/Users/alexb/Box Sync/Roadmap/source_attribution/molecular_clock/hierarchical',
   trsm='MSM',
@@ -44,6 +46,7 @@ if(length(args_line) > 0)
   stopifnot(args_line[[13]]=='-trsm')
   stopifnot(args_line[[15]]=='-seed')
   stopifnot(args_line[[17]]=='-bs_tsi')
+  stopifnot(args_line[[19]]=='-bs_phylo')
 
   args <- list()
   args[['source_dir']] <- args_line[[2]]
@@ -55,6 +58,7 @@ if(length(args_line) > 0)
   args[['trsm']] <- args_line[[14]]
   args[['seed']] <- as.integer(args_line[[16]])
   args[['bs_tsi']] <- as.integer(args_line[[18]])
+  args[['bs_phylo']] <- as.integer(args_line[[20]])
 }
 args
 
@@ -80,7 +84,7 @@ dind <- unique(dind)
 
 ## load infection time estimates and metadata ----
 
-dinf <- data.table(read.csv(file.path(args$source_dir,'data_Ams',args$analysis,'Infection_date_est_rec.csv')))
+dinf <- data.table(read.csv(file.path(args$indir,'transmission_sources','Infection_date_est_rec.csv')))
 setnames(dinf,c("id",'estsctodiagMedian','estsctodiagLL','estsctodiagUL'),c("TO_SEQUENCE_ID",'SER_TO_DIAG','SER_TO_DIAG_LL','SER_TO_DIAG_UL'))
 dinf <- unique(dinf)
 dinf <- merge(dinf,subset(dind,select=c('PATIENT','CITY','SEQ','TRANSM')),
@@ -92,11 +96,17 @@ if(args$bs_tsi==1){
   dinf[!is.na(SER_TO_DIAG), SER_TO_DIAG:= runif(.N,SER_TO_DIAG_LL,SER_TO_DIAG_UL)]
 }
 
-meta_data <- readRDS(file.path(args$source_dir,'data_Ams',args$analysis,'meta_data_mg_country.rds'))
+meta_data <- readRDS(file.path(args$indir,'transmission_sources','meta_data_mg_country.rds'))
 setnames(meta_data,"ID","TO_SEQUENCE_ID")
 setnames(meta_data,"bplace","BPLACE")
 meta_data <- unique(meta_data)
-data_age <- readRDS(file.path(args$source_dir,'data_Ams',args$analysis,'data_age.rds'))
+if(args$bs_phylo==1){
+  meta_data <- subset(meta_data,REP==sample(unique(meta$REP),1))
+}else{
+  meta_data <- subset(meta_data,REP=='000')
+}
+
+data_age <- readRDS(file.path(args$indir,'transmission_sources','data_age.rds'))
 data_age <- as.data.table(data_age)
 setnames(data_age,c("TO_SEQUENCE_ID","BIRTH_DATE","BIRTH_DATE_DEC"))
 
@@ -174,6 +184,11 @@ p <- ggplot(dat,aes(x=YEAR_OF_INF_EST,y=cumulative,fill=mwmb)) +
         strip.background=element_blank(), legend.position="none")
 p
 ggsave(file=file.path(out.dir,'Barplot_cum_sum_sample_size_MG.pdf'), p, w=10, h=6)
+
+# summarise TSIs for incident cases since 2010
+tmp <- individual_data_complete[YEAR_OF_INF_EST>=2010, list(q=quantile(SER_TO_DIAG,probs=c(0.5,0.025,0.75)),
+                                p=c('M','CL','CU')), by='BPLACE']
+tmp <- dcast(tmp,BPLACE~p,value.var='q')
 
 ## formulate pairs ----
 
@@ -336,7 +351,7 @@ cat(paste0('Number of unique cases: ',length(unique(pairs$TO_SEQUENCE_ID))))
 ## add genetic distance and calculate time elapsed ----
 
 # Integrate genetic distance of each pair from the distances found from the maximum likelihood phylogenetic tree
-gen_dist <- readRDS(file.path(args$source_dir,'data_Ams',args$analysis,paste0('pairwise_dist_allSTs_',args$trsm,'.rds')))
+gen_dist <- readRDS(file.path(args$indir,'transmission_sources',paste0('pairwise_dist_allSTs_',args$trsm,'.rds')))
 pairs <- merge(subset(gen_dist,select = c("FROM_SEQUENCE_ID","TO_SEQUENCE_ID","distance")),pairs,by= c("FROM_SEQUENCE_ID","TO_SEQUENCE_ID"),all.y=T)
 setnames(pairs,"distance","GEN_DIST")
 # replace distances of 0 with 1 mutation across alignment (1/1302)
