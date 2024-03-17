@@ -107,7 +107,7 @@ if(args$bs_phylo==1){
 }
 
 data_age <- readRDS(file.path(args$indir,'transmission_sources','data_age.rds'))
-data_age <- as.data.table(data_age)
+data_age <- as.data.table(unique(data_age))
 setnames(data_age,c("TO_SEQUENCE_ID","BIRTH_DATE","BIRTH_DATE_DEC"))
 
 # load baseline data
