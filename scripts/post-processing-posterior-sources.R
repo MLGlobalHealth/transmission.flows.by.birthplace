@@ -31,6 +31,7 @@ if(length(args_line) > 0)
   stopifnot(args_line[[5]]=='-outdir')
   stopifnot(args_line[[7]]=='-stanModelFile')
   stopifnot(args_line[[9]]=='-job_tag')
+  stopifnot(args_line[[11]]=='-analysis')
 
   args_dir <- list()
   args_dir[['source_dir']] <- args_line[[2]]
@@ -38,6 +39,7 @@ if(length(args_line) > 0)
   args_dir[['outdir']] <- args_line[[6]]
   args_dir[['stanModelFile']] <- args_line[[8]]
   args_dir[['job_tag']] <- args_line[[10]]
+  args_dir[['analysis']] <- args_line[[12]]
 }
 args_dir
 
@@ -55,16 +57,23 @@ outfile.base <- paste0(args_dir$outdir, "/",
                        args_dir$stanModelFile , "-", args_dir$job_tag)
 
 infile.seq <-	file.path(args_dir$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
+infile.meta <- file.path(args_dir$indir, args_dir$analysis, 'misc', '220713_sequence_labels.rda')
 infile.po.tpairprob <- paste0(outfile.base,'-stanout-tpairprobw-gqs.RDS')
 infile.sampling.prob <- paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS')
 
+cat('\nReading patient metadata...')
+load(infile.meta)
 load(infile.seq)
 
+cat('\nReading sampling probabilities...')
 spy <- readRDS(file=infile.sampling.prob)
+cat('\nReading posterior transmission pair probabilities...')
 po <- readRDS(file=infile.po.tpairprob)
 
 
 cat(" \n --------------------------------  add birthplace data to pairs -------------------------------- \n")
+
+dind <- data.table(dind)
 
 do <- unique(do)
 do <- merge(do,subset(dind,select=c('PATIENT','LOC_BIRTH')),by.x='FROM_SEQUENCE_ID',by.y='PATIENT',all.x=T)
@@ -105,7 +114,6 @@ po <- melt(po, id.vars = c('chain','iteration','draw'))
 po <- data.table(po)
 po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
 tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','YEAR_OF_INF_EST'))
-#setnames(tmp,'FROM_BPLACE','BPLACE')
 po <- merge(po, tmp, by = 'PAIR_ID')
 po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
             by.x=c('TO_BPLACE','YEAR_OF_INF_EST'),by.y=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'))
