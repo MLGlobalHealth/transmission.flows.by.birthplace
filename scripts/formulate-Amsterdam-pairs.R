@@ -101,7 +101,7 @@ setnames(meta_data,"ID","TO_SEQUENCE_ID")
 setnames(meta_data,"bplace","BPLACE")
 meta_data <- unique(meta_data)
 if(args$bs_phylo==1){
-  meta_data <- subset(meta_data,REP==sample(unique(meta$REP),1))
+  meta_data <- subset(meta_data,REP==sample(unique(meta_data$REP),1))
 }else{
   meta_data <- subset(meta_data,REP=='000')
 }
