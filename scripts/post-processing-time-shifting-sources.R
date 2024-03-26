@@ -99,6 +99,11 @@ do[TO_LOC_BIRTH %in% c("DutchCarSuriname"), TO_BPLACE:="Suriname &\nDutch Caribb
 do[TO_LOC_BIRTH %in% c("MENA"), TO_BPLACE:="MENA"]
 do[TO_ORIGIN=="NL", TO_BPLACE:="Netherlands"]
 
+do[, FROM_MIGRANT:= 'Foreign-born']
+do[FROM_ORIGIN=="NL", FROM_MIGRANT:= 'Dutch-born']
+do[, TO_MIGRANT:= 'Foreign-born']
+do[TO_ORIGIN=="NL", TO_MIGRANT:= 'Dutch-born']
+
 do[, FROM_BPLACE:= factor(FROM_BPLACE,
                           levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
                                    'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
