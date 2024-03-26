@@ -48,6 +48,7 @@ cat(" \n --------------------------------  load data ---------------------------
 infile.seq <-	file.path(args_dir$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
 infile.meta <- file.path(args_dir$indir, args_dir$analysis, 'misc', '220713_sequence_labels.rda')
 infile.bas <- file.path(args_dir$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
+infile.sampling.prob <- paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS')
 
 ## read stanin
 cat('\nReading Stan input data...')
