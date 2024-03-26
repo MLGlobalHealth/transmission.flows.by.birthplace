@@ -60,12 +60,16 @@ stopifnot(c('args','stan_data')%in%tmp)
 outfile.base <- paste0(args_dir$outdir, "/",
                        args_dir$stanModelFile , "-", args_dir$job_tag)
 
-tmp <- paste0(outfile.base,'-fitted_stan_model.rds')
-cat("\n Read fitted dat ", tmp , "\n")
-model_fit <- readRDS(file = tmp)
+cat('\nReading sampling probabilities...')
+spy <- readRDS(file=infile.sampling.prob)
+cat('\nReading posterior transmission pair probabilities...')
+tprob <- readRDS(file=infile.po.tpairprob)
+#samples <- rstan::extract(fit, inc_warmup = FALSE)
+tprob <- data.table(reshape::melt(tprob$tpair_prob_w))
 
 ## load ethnicity data ----
 
+cat('\nReading patient metadata...')
 load(infile.seq)
 
 do <- merge(do,subset(dind,select=c('PATIENT','LOC_BIRTH')),by.x='FROM_SEQUENCE_ID',by.y='PATIENT',all.x=T)
@@ -103,17 +107,8 @@ do[, TO_BPLACE:= factor(TO_BPLACE,
 
 # summarise flows by two-year intervals ----
 
-spy <- readRDS(file=paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS'))
-
-po <- model_fit$draws(inc_warmup = FALSE,
-                      format = 'draws_df',
-                      variables = 'tpair_prob_w'
-)
-po <- data.table(po)
-setnames(po, colnames(po), gsub('^\\.','',colnames(po)))
-po <- melt(po, id.vars = c('chain','iteration','draw'))
-po <- data.table(po)
-po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
+po <- data.table(tprob)
+setnames(po,c('iterations','Var.2'),c('draw','PAIR_ID'))
 tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','FROM_COUNTRY','TO_COUNTRY','FROM_SEQUENCE_ID','TO_SEQUENCE_ID','FROM_MIGRANT','TO_MIGRANT','YEAR_OF_INF_EST'))
 po <- merge(po, tmp, by = 'PAIR_ID')
 po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),

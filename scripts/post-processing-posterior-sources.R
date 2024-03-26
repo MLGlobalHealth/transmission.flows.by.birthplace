@@ -106,7 +106,7 @@ do[, FROM_BPLACE:= factor(FROM_BPLACE,
 do[, TO_BPLACE:= factor(TO_BPLACE,
                         levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
                                  'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
-### estimate sources by birthplace ----
+# estimate sources by birthplace ----
 cat(" \n --------------------------------  estimate sources by birthplace -------------------------------- \n")
 
 po <- data.table(tprob)
@@ -126,13 +126,12 @@ po[, paf := value/total]
 saveRDS(po,file=paste0(outfile.base,'-flows_frombplace_adjusted_samplingbias_mcsamples','.RDS'))
 
 
-## plot case-adjusted flows by birthplace of case and source ----
+# stratified flows by birthplace of case and source ----
 cat(" \n --------------------------------  plot adjusted flows by birthplace -------------------------------- \n")
 ## % flows from each region PER region of birth of cases (i.e. sum to one per regino of birth of recipient)
 
 po <- data.table(tprob)
 setnames(po,c('iterations','Var.2'),c('draw','PAIR_ID'))
-po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
 tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','YEAR_OF_INF_EST'))
 po <- merge(po, tmp, by = 'PAIR_ID')
 po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
@@ -149,7 +148,6 @@ cat(" \n --------------------------------  plot flows from group a to group b ou
 
 po <- data.table(tprob)
 setnames(po,c('iterations','Var.2'),c('draw','PAIR_ID'))
-po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
 tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','YEAR_OF_INF_EST'))
 po <- merge(po, tmp, by = 'PAIR_ID')
 po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
