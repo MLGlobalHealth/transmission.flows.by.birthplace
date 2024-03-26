@@ -57,9 +57,8 @@ outfile.base <- paste0(args_dir$outdir, "/",
                        args_dir$stanModelFile , "-", args_dir$job_tag)
 
 
-infile.seq <-	file.path(args_dir$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
 infile.meta <- file.path(args_dir$indir, args_dir$analysis, 'misc', '220713_sequence_labels.rda')
-infile.bas <- file.path(args_dir$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
+infile.po.tpairprob <- paste0(outfile.base,'-stanout-tpairprobw-gqs.RDS')
 infile.sampling.prob <- paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS')
 
 cat('\nReading sampling probabilities...')
@@ -72,7 +71,7 @@ tprob <- data.table(reshape::melt(tprob$tpair_prob_w))
 ## load ethnicity data ----
 
 cat('\nReading patient metadata...')
-load(infile.seq)
+load(infile.meta)
 
 do <- merge(do,subset(dind,select=c('PATIENT','LOC_BIRTH')),by.x='FROM_SEQUENCE_ID',by.y='PATIENT',all.x=T)
 setnames(do,'LOC_BIRTH','FROM_LOC_BIRTH')
