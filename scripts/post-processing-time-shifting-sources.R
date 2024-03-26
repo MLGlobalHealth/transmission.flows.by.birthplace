@@ -45,11 +45,6 @@ args_dir
 
 cat(" \n --------------------------------  load data -------------------------------- \n")
 
-infile.seq <-	file.path(args_dir$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
-infile.meta <- file.path(args_dir$indir, args_dir$analysis, 'misc', '220713_sequence_labels.rda')
-infile.bas <- file.path(args_dir$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
-infile.sampling.prob <- paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS')
-
 ## read stanin
 cat('\nReading Stan input data...')
 infile.stanin <- list.files(args_dir$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
@@ -60,6 +55,12 @@ stopifnot(c('args','stan_data')%in%tmp)
 
 outfile.base <- paste0(args_dir$outdir, "/",
                        args_dir$stanModelFile , "-", args_dir$job_tag)
+
+
+infile.seq <-	file.path(args_dir$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
+infile.meta <- file.path(args_dir$indir, args_dir$analysis, 'misc', '220713_sequence_labels.rda')
+infile.bas <- file.path(args_dir$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
+infile.sampling.prob <- paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS')
 
 cat('\nReading sampling probabilities...')
 spy <- readRDS(file=infile.sampling.prob)
