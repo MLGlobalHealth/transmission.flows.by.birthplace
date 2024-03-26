@@ -73,10 +73,15 @@ tprob <- data.table(reshape::melt(tprob$tpair_prob_w))
 cat('\nReading patient metadata...')
 load(infile.meta)
 
+dind <- data.table(dind)
+
+do <- unique(do)
 do <- merge(do,subset(dind,select=c('PATIENT','LOC_BIRTH')),by.x='FROM_SEQUENCE_ID',by.y='PATIENT',all.x=T)
 setnames(do,'LOC_BIRTH','FROM_LOC_BIRTH')
 do <- merge(do,subset(dind,select=c('PATIENT','LOC_BIRTH')),by.x='TO_SEQUENCE_ID',by.y='PATIENT',all.x=T)
 setnames(do,'LOC_BIRTH','TO_LOC_BIRTH')
+
+do <- unique(do)
 
 do[, FROM_BPLACE:="Other"]
 do[FROM_LOC_BIRTH %in% c("WEurope","NorthAm","Oceania"), FROM_BPLACE:="W.Europe,\nN.America,Oceania"]
@@ -93,11 +98,6 @@ do[TO_LOC_BIRTH %in% c("LaAmCar"), TO_BPLACE:="S. America &\n Caribbean"]
 do[TO_LOC_BIRTH %in% c("DutchCarSuriname"), TO_BPLACE:="Suriname &\nDutch Caribbean"]
 do[TO_LOC_BIRTH %in% c("MENA"), TO_BPLACE:="MENA"]
 do[TO_ORIGIN=="NL", TO_BPLACE:="Netherlands"]
-
-do[, FROM_MIGRANT:= 'Foreign-born']
-do[FROM_ORIGIN=="NL", FROM_MIGRANT:= 'Dutch-born']
-do[, TO_MIGRANT:= 'Foreign-born']
-do[TO_ORIGIN=="NL", TO_MIGRANT:= 'Dutch-born']
 
 do[, FROM_BPLACE:= factor(FROM_BPLACE,
                           levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
