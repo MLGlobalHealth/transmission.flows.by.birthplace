@@ -68,9 +68,9 @@ load(infile.seq)
 cat('\nReading sampling probabilities...')
 spy <- readRDS(file=infile.sampling.prob)
 cat('\nReading posterior transmission pair probabilities...')
-po <- readRDS(file=infile.po.tpairprob)
+tprob <- readRDS(file=infile.po.tpairprob)
 #samples <- rstan::extract(fit, inc_warmup = FALSE)
-po <- data.table(reshape::melt(po$tpair_prob_w))
+tprob <- data.table(reshape::melt(tprob$tpair_prob_w))
 
 cat(" \n --------------------------------  add birthplace data to pairs -------------------------------- \n")
 
@@ -109,7 +109,7 @@ do[, TO_BPLACE:= factor(TO_BPLACE,
 ### estimate sources by birthplace ----
 cat(" \n --------------------------------  estimate sources by birthplace -------------------------------- \n")
 
-po <- data.table(po)
+po <- data.table(tprob)
 #setnames(po, colnames(po), gsub('^\\.','',colnames(po)))
 #po <- melt(po, id.vars = c('chain','iteration','draw'))
 #po <- data.table(po)
@@ -124,3 +124,61 @@ tmp <- po[, list(total = sum(value)), by = c('draw')]
 po <- merge(po, tmp, by = 'draw')
 po[, paf := value/total]
 saveRDS(po,file=paste0(outfile.base,'-flows_frombplace_adjusted_samplingbias_mcsamples','.RDS'))
+
+
+## plot case-adjusted flows by birthplace of case and source ----
+cat(" \n --------------------------------  plot adjusted flows by birthplace -------------------------------- \n")
+## % flows from each region PER region of birth of cases (i.e. sum to one per regino of birth of recipient)
+
+po <- data.table(tprob)
+setnames(po,c('iterations','Var.2'),c('draw','PAIR_ID'))
+po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
+tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','YEAR_OF_INF_EST'))
+po <- merge(po, tmp, by = 'PAIR_ID')
+po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
+            by.x=c('TO_BPLACE','YEAR_OF_INF_EST'),by.y=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'))
+po <- po[, list(value = sum(value/psi)), by = c('draw','FROM_BPLACE','TO_BPLACE')]
+tmp <- po[, list(total = sum(value)), by = c('draw','TO_BPLACE')]
+po <- merge(po, tmp, by = c('draw','TO_BPLACE'))
+po[, paf := value/total]
+
+saveRDS(po,file=paste0(outfile.base,'-stratified_flows_frombplace_adjusted_samplingbias_mcsamples','.RDS'))
+
+## get flows from group a to group b out of total flows ----
+cat(" \n --------------------------------  plot flows from group a to group b out of total flows -------------------------------- \n")
+
+po <- data.table(tprob)
+setnames(po,c('iterations','Var.2'),c('draw','PAIR_ID'))
+po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
+tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','YEAR_OF_INF_EST'))
+po <- merge(po, tmp, by = 'PAIR_ID')
+po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
+            by.x=c('TO_BPLACE','YEAR_OF_INF_EST'),by.y=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'))
+po <- po[, list(value = sum(value/psi)), by = c('draw','FROM_BPLACE','TO_BPLACE')]
+tmp <- po[, list(total = sum(value)), by = c('draw')]
+po <- merge(po, tmp, by = c('draw'))
+po[, paf := value/total]
+
+saveRDS(po,file=paste0(outfile.base,'-adjusted_flows_atob_samplingofcases_bplacecase_bplacesrc','.RDS'))
+
+do[, FROM_BPLACE:= factor(FROM_BPLACE,
+                          levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                          labels=c('Netherlands','W.Europe,\nN.America & Oceania','Suriname &\nDutch Caribbean',
+                                   'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
+do[, TO_BPLACE:= factor(TO_BPLACE,
+                        levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
+                                 'S. America &\n Caribbean','E. & C. Europe','MENA','Other'),
+                        labels=c('Netherlands','W.Europe,\nN.America & Oceania','Suriname &\nDutch Caribbean',
+                                 'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
+
+breaks_to <- do[, list(N_TO=length(unique(TO_SEQUENCE_ID))),by=c('TO_BPLACE')]
+breaks_from <- do[, list(N_FROM=length(unique(FROM_SEQUENCE_ID))),by=c('FROM_BPLACE')]
+breaks_to <- breaks_to[order(TO_BPLACE),]
+breaks_from <- breaks_from[order(FROM_BPLACE),]
+
+breaks_to[, pos_to:= cumsum(N_TO) - N_TO/2 ]
+breaks_from[, pos_from:= cumsum(N_FROM) - N_FROM/2]
+
+saveRDS(breaks_from,file=paste0(outfile.base,'-flows_breaks_from','.RDS'))
+saveRDS(breaks_to,file=paste0(outfile.base,'-flows_breaks_to','.RDS'))

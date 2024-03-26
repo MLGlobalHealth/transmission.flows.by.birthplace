@@ -80,9 +80,9 @@ dbas <- fread(infile.bas)
 da <- subset(dbas,REG_EVR_AMSTERDAM==1 & MODE==1) # amsterdam MSM only
 da[, SEQ:= PATIENT %in% dsubgraphtaxa$ID]
 da <- merge(da,st.a,by.x='PATIENT',by.y='ID',all.x=T)
-da[!is.na(SUBTYPE) & ! SUBTYPE %in% c('B','01_AE','02_AG','06_cpx','A1','C','D','G') , SUBTYPE:= 'Other']
-da[, SUBTYPE:= factor(SUBTYPE,levels=c('B','01_AE','02_AG','A1','C','G','D','06_cpx','Other'),
-                      labels=c('B','01AE','02AG','A1','C','G','D','06_cpx','Other'))]
+da[!is.na(SUBTYPE) & ! SUBTYPE %in% c('B','01_AE','02_AG','06_cpx','A1','C','D','G','F1') , SUBTYPE:= 'Other']
+da[, SUBTYPE:= factor(SUBTYPE,levels=c('B','01_AE','02_AG','A1','C','G','D','F1','06_cpx','Other'),
+                      labels=c('B','01AE','02AG','A1','C','G','D','F1','06_cpx','Other'))]
 
 ## load infection dates ----
 dinf <- data.table(read.csv(file.path('data_Ams',args$analysis,'Infection_date_est_rec.csv')))
