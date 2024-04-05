@@ -29,11 +29,11 @@ if (0)
     reps = 1,
     rep = 1,
     simulate_data = T,
-    job_tag = 'agegps_sensanalysis_210216_MSM-2010_2022'
+    job_tag = 'agegps_sensanalysis_210216_MSM-2010_2022',
+    path_bs_phylo = '/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon/Roadmap/sources/ethnicity_analysis/uncertainty/bs_phylo_tsi'
   )
+  args <- args_dir
 }
-args <- args_dir
-
 ## command line parsing if any
 args_line <-  as.list(commandArgs(trailingOnly=TRUE))
 if(length(args_line) > 0)
@@ -124,26 +124,13 @@ cat(" \n --------------------------------  plot adjusted flows by birthplace ---
 
 spy <- readRDS(file=paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS'))
 
-po <- model_fit$draws(inc_warmup = FALSE,
-                      format = 'draws_df',
-                      variables = 'tpair_prob_w' #tpair_prob_w
-)
-po <- data.table(po)
-setnames(po, colnames(po), gsub('^\\.','',colnames(po)))
-po <- melt(po, id.vars = c('chain','iteration','draw'))
-po <- data.table(po)
-po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
-tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','YEAR_OF_INF_EST'))
-#setnames(tmp,'FROM_BPLACE','BPLACE')
-po <- merge(po, tmp, by = 'PAIR_ID')
-po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
-            by.x=c('TO_BPLACE','YEAR_OF_INF_EST'),by.y=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'))
-po <- po[, list(value = sum(value/psi)), by = c('draw','FROM_BPLACE','TO_BPLACE')]
-tmp <- po[, list(total = sum(value)), by = c('draw','TO_BPLACE')]
-po <- merge(po, tmp, by = c('draw','TO_BPLACE'))
-po[, paf := value/total]
-
-saveRDS(po,file=paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_bplacecase_bplacesrc_mcsamples','.RDS'))
+tmp <- data.table(F=list.files(file.path(args_dir$path_bs_phylo,'flows_stratified')))
+po <- list()
+for(i in 1:nrow(tmp)){
+  po[[i]] <- readRDS(file.path(args_dir$path_bs_phylo,'flows_stratified',tmp[i,F]))
+  po[[i]][,bs_rep:=i]
+}
+po <- do.call(`rbind`,po)
 
 po <- po[,
          list( q = quantile(paf, probs = c(0.5, 0.025, 0.25, 0.75, 0.975) ),
@@ -164,7 +151,7 @@ po[, TO_BPLACE:= factor(TO_BPLACE,
                                  'S. America &\nNon-Dutch Caribbean','E. & C. Europe','MENA','Other'))]
 
 po[, L:= paste0(round(M*100,1),'% [',round(CL*100,1),'-',round(CU*100,1),'%]')]
-saveRDS(po,file=paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_bplacecase_bplacesrc','.RDS'))
+saveRDS(po,file=paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_bplacecase_bplacesrc_bs_phylo_tsi','.RDS'))
 
 
 g_flows <- ggplot(subset(po,TO_BPLACE!='Overall')) + geom_bar(aes(x=TO_BPLACE,y=M,fill=FROM_BPLACE),stat='identity',position=position_dodge(width=0.9)) +
@@ -179,40 +166,23 @@ g_flows <- ggplot(subset(po,TO_BPLACE!='Overall')) + geom_bar(aes(x=TO_BPLACE,y=
   coord_cartesian(ylim = c(0,1)) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
 
-ggsave(file = paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_contributions.pdf'),
-       g, w = 11, h = 8)
-ggsave(file = paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_contributions.png'),
-       g, w = 11, h = 8)
-
-
 # make table for paper
 tab <- dcast(po,FROM_BPLACE~TO_BPLACE,value.var='L')
-saveRDS(tab,file=paste0(outfile.base,'-table_stratified_flows.RDS'))
+saveRDS(tab,file=paste0(outfile.base,'-table_stratified_flows_bs_phylo_tsi.RDS'))
+write.csv(tab,file=paste0(outfile.base,'-table_stratified_flows_bs_phylo_tsi.csv'))
 
 ## get flows from group a to group b out of total flows ----
 cat(" \n --------------------------------  plot flows from group a to group b out of total flows -------------------------------- \n")
 
 spy <- readRDS(file=paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS'))
 
-po <- model_fit$draws(inc_warmup = FALSE,
-                      format = 'draws_df',
-                      variables = 'tpair_prob_w' #tpair_prob_w
-)
-po <- data.table(po)
-setnames(po, colnames(po), gsub('^\\.','',colnames(po)))
-po <- melt(po, id.vars = c('chain','iteration','draw'))
-po <- data.table(po)
-po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
-tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','YEAR_OF_INF_EST'))
-po <- merge(po, tmp, by = 'PAIR_ID')
-po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
-            by.x=c('TO_BPLACE','YEAR_OF_INF_EST'),by.y=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'))
-po <- po[, list(value = sum(value/psi)), by = c('draw','FROM_BPLACE','TO_BPLACE')]
-tmp <- po[, list(total = sum(value)), by = c('draw')]
-po <- merge(po, tmp, by = c('draw'))
-po[, paf := value/total]
-
-saveRDS(po,file=paste0(outfile.base,'-adjusted_flows_atob_samplingofcases_bplacecase_bplacesrc_mcsamples','.RDS'))
+tmp <- data.table(F=list.files(file.path(args_dir$path_bs_phylo,'flows_heatmap'),pattern='adjusted_flows_atob'))
+po <- list()
+for(i in 1:nrow(tmp)){
+  po[[i]] <- readRDS(file.path(args_dir$path_bs_phylo,'flows_heatmap',tmp[i,F]))
+  po[[i]][,bs_rep:=i]
+}
+po <- do.call(`rbind`,po)
 
 po <- po[,
          list( q = quantile(paf, probs = c(0.5, 0.025, 0.25, 0.75, 0.975) ),
@@ -234,7 +204,11 @@ po[, TO_BPLACE:= factor(TO_BPLACE,
 
 po[, L:= paste0(round(M*100,1),'% [',round(CL*100,1),'-',round(CU*100,1),'%]')]
 
-saveRDS(po,file=paste0(outfile.base,'-adjusted_flows_atob_samplingofcases_bplacecase_bplacesrc','.RDS'))
+saveRDS(po,file=paste0(outfile.base,'-adjusted_flows_atob_samplingofcases_bplacecase_bplacesrc_bs_phylo_tsi','.RDS'))
+
+tab <- dcast(po,FROM_BPLACE~TO_BPLACE,value.var='L')
+saveRDS(tab,file=paste0(outfile.base,'-table_atob_flows_bs_phylo_tsi.RDS'))
+write.csv(tab,file=paste0(outfile.base,'-table_atob_flows_bs_phylo_tsi.csv'))
 
 tmp <- expand.grid(FROM_BPLACE=unique(po$FROM_BPLACE),
                    TO_BPLACE=unique(po$TO_BPLACE))
@@ -265,9 +239,6 @@ breaks_from <- breaks_from[order(FROM_BPLACE),]
 breaks_to[, pos_to:= cumsum(N_TO) - N_TO/2 ]
 breaks_from[, pos_from:= cumsum(N_FROM) - N_FROM/2]
 
-saveRDS(breaks_from,file=paste0(outfile.base,'-flows_breaks_from','.RDS'))
-saveRDS(breaks_to,file=paste0(outfile.base,'-flows_breaks_to','.RDS'))
-
 #breaks_to <- tmp_to[, list(TO_BPLACE=TO_BPLACE,
 #                           pos_to = 0.5 * (cumsum(N_TO) + lag(cumsum(N_TO), default = 0)))]
 #breaks_from <- tmp_from[, list(FROM_BPLACE=FROM_BPLACE,
@@ -296,18 +267,27 @@ g_hmap <- ggplot(po, aes(x=pos_to, y=pos_from,fill= flows_cat)) +
   scale_x_continuous(breaks = breaks_to$pos_to, labels = breaks_to$TO_BPLACE, expand = c(0, 0.1)) +
 scale_y_continuous(breaks = breaks_from$pos_from, labels = breaks_from$FROM_BPLACE, expand = c(0, 0.1))
 
-ggsave(file = paste0(outfile.base,'-adjusted_flows_atob_samplingofcases_bplacecase_bplacesrc_heatmap.pdf'),
-       g_hmap, w = 9, h = 7)
-ggsave(file = paste0(outfile.base,'-adjusted_flows_atob_samplingofcases_bplacecase_bplacesrc_heatmap.png'),
-       g_hmap, w = 9, h = 7)
-
 
 ## make time-shifting sources plot ----
-po <- readRDS(file=paste0(outfile.base,'-adjusted_flows_mwmb_by2years_samplingofcases','.RDS'))
+tmp <- data.table(F=list.files(file.path(args_dir$path_bs_phylo,'flows_2years')))
+po <- list()
+for(i in 1:nrow(tmp)){
+  po[[i]] <- readRDS(file.path(args_dir$path_bs_phylo,'flows_2years',tmp[i,F]))
+  po[[i]][,bs_rep:=i]
+}
+po <- do.call(`rbind`,po)
+
+po <- po[,
+         list( q = quantile(paf, probs = c(0.5, 0.025, 0.25, 0.75, 0.975) ),
+               stat = c('M','CL','IL', 'IU', 'CU')
+         ),
+         by = c('YEAR_GP','FROM_MIGRANT')
+]
+po <- dcast.data.table(po, YEAR_GP + FROM_MIGRANT ~stat, value.var = 'q')
 
 pal <- pal_npg('nrc')(4)[c(1,4)]
 
-g_srcs <- ggplot(subset(po,TO_BPLACE=='Overall')) +
+g_srcs <- ggplot(subset(po)) +
   geom_errorbar(aes(x=YEAR_GP,ymin=CL, ymax=CU,fill=FROM_MIGRANT),position=position_dodge(width=0.5),width=0.3, colour="black")	+
   geom_point(aes(x=YEAR_GP,y=M,colour=FROM_MIGRANT),size=2,position=position_dodge(width=0.5)) +
   scale_fill_manual(values=pal) +
@@ -328,7 +308,7 @@ g_srcs <- ggplot(subset(po,TO_BPLACE=='Overall')) +
                           NULL,widths=c(0.95,0.05)),g_srcs + theme_bw(base_size=9),
                 ncol=1,nrow=3,align='v',labels='AUTO',font.label=list(size=12),heights=c(0.33,0.42,0.25))
 
-ggsave(file = paste0(outfile.base,'-stratified_flows_heatmap_temporal_labs.pdf'),
+ggsave(file = paste0(outfile.base,'-stratified_flows_heatmap_temporal_labs_bs_phylo_tsi.pdf'),
        g, w = 7, h = 11)
-ggsave(file = paste0(outfile.base,'-stratified_flows_heatmap_temporal_labs.png'),
+ggsave(file = paste0(outfile.base,'-stratified_flows_heatmap_temporal_labs_bs_phylo_tsi.png'),
        g, w = 7, h = 11)

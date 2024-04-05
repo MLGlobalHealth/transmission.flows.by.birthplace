@@ -20,7 +20,8 @@ if (0)
     indir = '~/Box\ Sync/Roadmap/source_attribution',
     outdir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_sensanalysis_210216_MSM-618873',
     stanModelFile = 'mm_bgUnif_piGP_221027b',
-    job_tag = 'agegps_sensanalysis_210216_MSM'
+    job_tag = 'agegps_sensanalysis_210216_MSM',
+    local = 1
   )
 }
 
@@ -32,12 +33,14 @@ if(length(args_line) > 0)
   stopifnot(args_line[[3]]=='-stanModelFile')
   stopifnot(args_line[[5]]=='-outdir')
   stopifnot(args_line[[7]]=='-job_tag')
+  stopifnot(args_line[[9]]=='-local')
 
   args <- list()
   args[['source_dir']] <- args_line[[2]]
   args[['stanModelFile']] <- args_line[[4]]
   args[['outdir']] <- args_line[[6]]
   args[['job_tag']] <- args_line[[8]]
+  args[['local']] <- args_line[[10]]
 }
 args
 
@@ -53,10 +56,16 @@ stopifnot(c('args','stan_data')%in%tmp)
 
 do <- do[order(PAIR_ID),]
 
-outfile.base <- file.path(args$source_dir,outfile.base)
+#outfile.base <- file.path(args$source_dir,outfile.base)
+outfile.base <- paste0(args_dir$out_dir, "/",
+                       args_dir$stanModelFile , "-", args_dir$job_tag)
 
-tmp <- paste0(outfile.base,'-fitted_stan_model.rds')
-cat("\n Read fitted dat ", tmp , "\n")
+if(args$local==1){
+  file <- paste0(outfile.base,'-fitted_stan_model.rds')
+}else{
+  file <- paste0(outfile.base,'-stanout-fit.RDS')
+}
+cat("\n read RDS:", file)
 model_fit <- readRDS(file = tmp)
 
 cat(" \n -------------------------------- \n Check convergence and divergences \n -------------------------------- \n")
