@@ -157,7 +157,7 @@ saveRDS(po,file=paste0(outfile.base,'-adjusted_flowsINTO_samplingofcases_bplacec
 g_flows <- ggplot(subset(po,TO_BPLACE!='Overall')) + geom_bar(aes(x=TO_BPLACE,y=M,fill=FROM_BPLACE),stat='identity',position=position_dodge(width=0.9)) +
   geom_errorbar(aes(x=TO_BPLACE,ymin=CL, ymax=CU,fill=FROM_BPLACE),position=position_dodge(width=0.9), width=0.5, colour="black")	+
   scale_fill_npg() +
-  labs(x='Birthplace of incident case',fill='Birthplace of source', y='\nContribution to incident cases in\nMSM born in each geographic region') +
+  labs(x='Birthplace of incident case',fill='Birthplace of source', y='Contribution to incident cases in\nMSM born in each geographic region') +
   theme_bw(base_size=28) +
   theme(legend.pos='none',
         axis.title.x = element_blank(),
@@ -165,6 +165,28 @@ g_flows <- ggplot(subset(po,TO_BPLACE!='Overall')) + geom_bar(aes(x=TO_BPLACE,y=
         axis.text.x = element_text(angle=60, vjust = 0.95,hjust = 0.9)) +#+ #,
   coord_cartesian(ylim = c(0,1)) +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L),breaks=seq(0,1,0.2))
+
+ggsave(file = paste0(outfile.base,'-stratified_flows_bs_phylo_tsi.pdf'),
+       g_flows + theme_bw(base_size=9) + theme(legend.pos='right',axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+       w = 6, h = 3.3)
+ggsave(file = paste0(outfile.base,'-stratified_flows_bs_phylo_tsi.png'),
+       g_flows + theme_bw(base_size=9) + theme(legend.pos='right',axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+       w = 6, h = 3.3)
+ggsave(file = paste0(outfile.base,'-stratified_flows_bs_phylo_tsi_legbottom.pdf'),
+       g_flows +   labs(x='Birthplace of incident case',fill='Birthplace\nof source', y='Contribution to incident cases in\nMSM born in each geographic region') +
+         guides(fill=guide_legend(nrow=3)) +
+         theme_bw(base_size=9) + theme(legend.pos='bottom',axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+       w = 5.1, h = 4.2)
+ggsave(file = paste0(outfile.base,'-stratified_flows_bs_phylo_tsi_legbottom.png'),
+       g_flows +   labs(x='Birthplace of incident case',fill='Birthplace\nof source', y='Contribution to incident cases in\nMSM born in each geographic region') +
+         guides(fill=guide_legend(nrow=3)) +
+         theme_bw(base_size=9) + theme(legend.pos='bottom',axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+       w = 5.1, h = 4.2)
+ggsave(file = paste0(outfile.base,'-stratified_flows_bs_phylo_tsi_legbottom_wide.png'),
+       g_flows +   labs(x='Birthplace of incident case',fill='Birthplace\nof source', y='Contribution to incident cases in\nMSM born in each geographic region') +
+         guides(fill=guide_legend(nrow=3)) +
+         theme_bw(base_size=9) + theme(legend.pos='bottom',axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+       w = 5.1, h = 4.2)
 
 # make table for paper
 tab <- dcast(po,FROM_BPLACE~TO_BPLACE,value.var='L')

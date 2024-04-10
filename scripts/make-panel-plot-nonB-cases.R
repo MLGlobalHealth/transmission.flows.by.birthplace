@@ -206,6 +206,16 @@ g_cases_bplace <- ggplot(subset(ds,YEAR_OF_INF_EST>=2010)) +
          fill = guide_legend(order=2),
          by.col=T)
 
+ggsave(file = paste0(outfile.base,'-incident_cases_birthplace.pdf'),
+       g_cases_bplace +   labs(x='',fill='Birthplace of\nincident case', y='Estimated incident cases among\nAmsterdam MSM',
+                               col='') +
+         theme_bw(base_size=9) ,
+       w = 4, h = 2.3)
+ggsave(file = paste0(outfile.base,'-incident_cases_birthplace.png'),
+       g_cases_bplace + labs(x='',fill='Birthplace of\nincident case', y='Estimated incident cases among\nAmsterdam MSM',
+                             col='') + theme_bw(base_size=9) ,
+       w = 4, h = 2.3)
+
 # group migrants together
 ds[, MB:= 'Foreign-born']
 ds[BPLACE=='Netherlands', MB:= 'Dutch-born']
