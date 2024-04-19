@@ -39,7 +39,7 @@ if(1)
 
 if(1)
 {
-  tmp <- data.table(REP=0:2)
+  tmp <- data.table(REP=0:100)
   tmp[, REP:= as.character(str_pad(REP, 3, pad = "0"))]
   set(args, NULL, colnames(tmp), NULL)
   tmp[, dummy:= 1L]
@@ -63,7 +63,7 @@ for(i in seq_len(nrow(args)))
   cmd    	<- paste0(cmd,"mkdir -p ",tmpdir,'\n')
   #	generate data set and run if not using cmdstan
   cmd     <- paste0( cmd, 'echo "----------- Generating input data: ------------"\n')
-  tmp     <- paste0('Rscript ', file.path(args$source_dir[i],args$script_make_pairs[i]),
+  tmp     <- paste0('Rscript ', file.path(args$source_dir[i],'scripts','extract-patristic-distances-from-trees.R'),
                     ' -indir ', args$in.dir[i],'',
                     ' -out.dir ', tmpdir,'',
                     ' -trsm ', args$trsm[i],'',

@@ -101,9 +101,13 @@ setnames(meta_data,"ID","TO_SEQUENCE_ID")
 setnames(meta_data,"bplace","BPLACE")
 meta_data <- unique(meta_data)
 if(args$bs_phylo==1){
-  meta_data <- subset(meta_data,REP==sample(unique(meta_data$REP),1))
+  rep_id <- sample(unique(meta_data$REP),1)
+  cat(paste0('\n','BS replicate ',rep_id,'\n'))
+  meta_data <- subset(meta_data,REP==rep_id)
 }else{
-  meta_data <- subset(meta_data,REP=='000')
+  rep_id <- '000'
+  cat(paste0('\n','BS replicate ',rep_id,'\n'))
+  meta_data <- subset(meta_data,REP==rep_id)
 }
 
 data_age <- readRDS(file.path(args$indir,'transmission_sources','data_age.rds'))
@@ -351,7 +355,7 @@ cat(paste0('Number of unique cases: ',length(unique(pairs$TO_SEQUENCE_ID))))
 ## add genetic distance and calculate time elapsed ----
 
 # Integrate genetic distance of each pair from the distances found from the maximum likelihood phylogenetic tree
-gen_dist <- readRDS(file.path(args$indir,'transmission_sources',paste0('pairwise_dist_allSTs_',args$trsm,'.rds')))
+gen_dist <- readRDS(file.path(args$indir,'transmission_sources','patristic_distances',paste0('pairwise_dist_allSTs_Ams',args$trsm,'_',rep_id,'.rds')))
 pairs <- merge(subset(gen_dist,select = c("FROM_SEQUENCE_ID","TO_SEQUENCE_ID","distance")),pairs,by= c("FROM_SEQUENCE_ID","TO_SEQUENCE_ID"),all.y=T)
 setnames(pairs,"distance","GEN_DIST")
 # replace distances of 0 with 1 mutation across alignment (1/1302)
