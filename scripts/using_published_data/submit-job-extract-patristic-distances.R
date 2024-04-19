@@ -64,7 +64,7 @@ for(i in seq_len(nrow(args)))
   #	generate data set and run if not using cmdstan
   cmd     <- paste0( cmd, 'echo "----------- Generating input data: ------------"\n')
   tmp     <- paste0('Rscript ', file.path(args$source_dir[i],args$script_make_pairs[i]),
-                    ' -in.dir ', args$in.dir[i],'',
+                    ' -indir ', args$in.dir[i],'',
                     ' -out.dir ', tmpdir,'',
                     ' -trsm ', args$trsm[i],'',
                     ' -REP ', args$REP[i],''

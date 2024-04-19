@@ -17,7 +17,7 @@ args <- list(
 args_line <-  as.list(commandArgs(trailingOnly=TRUE))
 if(length(args_line) > 0)
 {
-  stopifnot(args_line[[1]]=='-in.dir')
+  stopifnot(args_line[[1]]=='-indir')
   stopifnot(args_line[[3]]=='-out.dir')
   stopifnot(args_line[[5]]=='-trsm')
   stopifnot(args_line[[7]]=='-REP')
