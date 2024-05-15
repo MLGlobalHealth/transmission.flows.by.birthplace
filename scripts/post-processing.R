@@ -18,13 +18,13 @@ if (1)
 
 # set up env variables
 cmd2 <- paste0('SCRIPT_DIR=',args$source_dir,'\n',
-               'IN_DIR=',args$in_dir,'\n',
+               'IN_DIR="',args$in_dir,'"\n',
                'OUT_DIR=',args$out_dir,'\n',
                'JOB_TAG=',args$job_tag,'\n',
                'STAN_MODEL_FILE=',args$stanModelFile,'\n',
-               'ANALYSIS=',args$analysis,'\n',
+               'ANALYSIS="',args$analysis,'"\n',
                'OVERWRITE=0\n',
-               'UNDIAG_JOB=', args$undiagnosed,'\n'
+               'UNDIAG_JOB="', args$undiagnosed,'"\n'
 )
 # check convergence
 tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','check-convergence.R'),
@@ -32,7 +32,7 @@ tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','check-convergence.R
 cmd2 <- paste0(cmd2,tmp,'\n')
 # make plot of cases, sequenced and subtypes
 tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','make-panel-plot-nonB-cases.R'),
-              ' -source_dir $SCRIPT_DIR -indir $IN_DIR -analysis $ANALYSIS -undiagnosed $UNDIAG_JOB')
+              ' -source_dir $SCRIPT_DIR -indir $IN_DIR -outdir $OUT_DIR -analysis $ANALYSIS -stanModelFile $STAN_MODEL_FILE -job_tag $JOB_TAG -undiagnosed $UNDIAG_JOB')
 cmd2 <- paste0(cmd2,tmp,'\n')
 # make plot of contribution of birthplaces to prevalence, viremic MSM and transmission flows
 tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','make-plot-contribution-to-prevalence-flows.R'),

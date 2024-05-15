@@ -36,6 +36,7 @@ if (0)
     overwrite = 1,
     path_bs_phylo_tsi = '/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon/Roadmap/sources/ethnicity_analysis/uncertainty/bs_phylo_tsi'
   )
+  args <- args_dir
 }
 
 ## command line parsing if any
@@ -67,17 +68,11 @@ infile.meta <- file.path(args$indir, args$analysis, 'misc', '220713_sequence_lab
 
 ## read stanin
 cat('\nReading Stan input data...')
-infile.stanin <- list.files(args_dir$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
+infile.stanin <- list.files(args$outdir, pattern=paste0('_stanin.RData$'), recursive=TRUE)[1]
 stopifnot(length(infile.stanin)>0)
 stopifnot(length(infile.stanin)<=1)
-tmp <- load(file.path(args_dir$outdir, infile.stanin))
+tmp <- load(file.path(args$outdir, infile.stanin))
 stopifnot(c('args','stan_data')%in%tmp)
-## TODO FIX ARGS
-args$analysis = args_dir$analysis
-args$indir = args_dir$indir
-#args$job_tag = args_dir$job_tag
-args$undiagnosed = args_dir$undiagnosed
-args$overwrite = args_dir$overwrite
 
 cat(outfile.base)
 
@@ -264,10 +259,10 @@ if(args$overwrite){
 
 ### plot flows by birthplace ----
 cat(" \n --------------------------------  plot flows by birthplace -------------------------------- \n")
-tmp <- data.table(F=list.files(file.path(args_dir$path_bs_phylo_tsi,'flows')))
+tmp <- data.table(F=list.files(file.path(args$path_bs_phylo_tsi,'flows')))
 po <- list()
 for(i in 1:nrow(tmp)){
-  po[[i]] <- readRDS(file.path(args_dir$path_bs_phylo_tsi,'flows',tmp[i,F]))
+  po[[i]] <- readRDS(file.path(args$path_bs_phylo_tsi,'flows',tmp[i,F]))
   po[[i]][,bs_rep:=i]
 }
 po <- do.call(`rbind`,po)
@@ -283,6 +278,7 @@ po <- po[,
 po <- dcast.data.table(po, FROM_BPLACE~stat, value.var = 'q')
 setnames(po,'FROM_BPLACE','FROM_BPLACE')
 po[, TO_BPLACE:= 'Overall']
+po[, L:= paste0(round(M*100,1),'% [',round(CL*100,1),'-',round(CU*100,1),'%]')]
 if(args$overwrite){saveRDS(po,file=paste0(outfile.base,'-adjusted_flows_samplingofcases_bs_phylo_tsi','.RDS'))}
 
 po[, FROM_BPLACE:= factor(FROM_BPLACE,

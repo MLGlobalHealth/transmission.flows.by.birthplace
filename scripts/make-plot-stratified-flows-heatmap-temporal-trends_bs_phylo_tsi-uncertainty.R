@@ -182,11 +182,16 @@ ggsave(file = paste0(outfile.base,'-stratified_flows_bs_phylo_tsi_legbottom.png'
          guides(fill=guide_legend(nrow=3)) +
          theme_bw(base_size=9) + theme(legend.pos='bottom',axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
        w = 5.1, h = 4.2)
+ggsave(file = paste0(outfile.base,'-stratified_flows_bs_phylo_tsi_legbottom_tall.png'),
+       g_flows +   labs(x='Birthplace of incident case',fill='Birthplace\nof source', y='Contribution to incident cases in\nMSM born in each geographic region') +
+         guides(fill=guide_legend(nrow=3)) +
+         theme_bw(base_size=9) + theme(legend.pos='bottom',axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+       w = 4.5, h = 4.2)
 ggsave(file = paste0(outfile.base,'-stratified_flows_bs_phylo_tsi_legbottom_wide.png'),
        g_flows +   labs(x='Birthplace of incident case',fill='Birthplace\nof source', y='Contribution to incident cases in\nMSM born in each geographic region') +
          guides(fill=guide_legend(nrow=3)) +
          theme_bw(base_size=9) + theme(legend.pos='bottom',axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
-       w = 5.1, h = 4.2)
+       w = 5.6, h = 4.2)
 
 # make table for paper
 tab <- dcast(po,FROM_BPLACE~TO_BPLACE,value.var='L')
@@ -334,3 +339,33 @@ ggsave(file = paste0(outfile.base,'-stratified_flows_heatmap_temporal_labs_bs_ph
        g, w = 7, h = 11)
 ggsave(file = paste0(outfile.base,'-stratified_flows_heatmap_temporal_labs_bs_phylo_tsi.png'),
        g, w = 7, h = 11)
+
+
+g <- ggarrange(g_flows + theme_bw(base_size=9) + theme(axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+               g_srcs + theme_bw(base_size=9),
+               ncol=1,nrow=2,align='v',labels='AUTO',font.label=list(size=12),heights=c(0.66,0.33))
+
+ggsave(file = paste0(outfile.base,'-stratified_flows_temporal_labs_bs_phylo_tsi.pdf'),
+       g, w = 9, h = 5)
+ggsave(file = paste0(outfile.base,'-stratified_flows_temporal_labs_bs_phylo_tsi.png'),
+       g, w = 9, h = 5)
+
+
+g <- ggarrange(g_flows + labs(fill='Birthplace\nof source') + theme_bw(base_size=9) + theme(legend.pos='bottom',axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+               g_srcs + labs(col='Birthplace\nof likely\ntransmitter')+ theme_bw(base_size=9) + theme(legend.pos='bottom',axis.text.x = element_text(angle=50, vjust = 0.95,hjust = 0.9)),
+               ncol=2,nrow=1,align='h',labels='AUTO',font.label=list(size=12),widths=c(0.63,0.37))
+
+ggsave(file = paste0(outfile.base,'-stratified_flows_temporal_labs_bs_phylo_tsi_sidebyside.pdf'),
+       g, w = 11, h = 5)
+ggsave(file = paste0(outfile.base,'-stratified_flows_temporal_labs_bs_phylo_tsi_sidebyside.png'),
+       g, w = 11, h = 5)
+
+g <- ggarrange(g_flows + labs(fill='Birthplace\nof source', y='\nContribution to incident cases in\nMSM born in each geographic region') + theme_bw(base_size=9) + theme(legend.pos='bottom',axis.text.x = element_text(angle=30, vjust = 0.95,hjust = 0.9)),
+               g_srcs + labs(col='')+ theme_bw(base_size=9) + theme(legend.pos='bottom',axis.text.x = element_text(angle=30, vjust = 0.95,hjust = 0.9)),
+               ncol=2,nrow=1,align='h',labels='AUTO',font.label=list(size=12),widths=c(0.65,0.35))
+
+ggsave(file = paste0(outfile.base,'-stratified_flows_temporal_labs_bs_phylo_tsi_sidebyside_big.pdf'),
+       g, w = 9, h = 4.2)
+ggsave(file = paste0(outfile.base,'-stratified_flows_temporal_labs_bs_phylo_tsi_sidebyside_big.png'),
+       g, w = 9, h = 4.2)
+
