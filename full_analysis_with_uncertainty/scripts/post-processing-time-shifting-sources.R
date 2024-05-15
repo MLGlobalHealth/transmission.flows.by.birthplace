@@ -1,26 +1,14 @@
-
 ## preamble ----
 require(data.table)
-require(ggplot2)
-require(ggsci)
-require(scales)
-require(grid)
-require(ggpubr)
-require(ggExtra)
-require(cowplot)
-require(Hmisc)
-library(networkD3)
-library(htmlwidgets)
 
-if (1)
+if (0)
 {
   args_dir <- list(
     source_dir = '~/Documents/GitHub/transmission.flows.by.birthplace',
     #indir = '~/Box\ Sync/Roadmap/source_attribution',
-    analysis = 'analysis_220713',
     indir = '~/Box\ Sync/Roadmap',
+    analysis = 'analysis_220713',
     pairs.dir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/agegps_updated_criteria_MSM-2010_2022',
-    #outdir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_TE16_MSM-2010_2022-1665619',
     outdir = '/Users/alexb/Documents/GitHub/transmission.flows.by.birthplace/out_Amsterdam/mm_bgUnif_piGP_221027b-agegps_sensanalysis_210216_MSM-618873',
     clock_model = '/Users/alexb/Box Sync/Roadmap/source_attribution/molecular_clock/hierarchical',
     stanModelFile = 'mm_bgUnif_piGP_221027b',
@@ -28,7 +16,9 @@ if (1)
     reps = 1,
     rep = 1,
     simulate_data = T,
-    job_tag = 'agegps_sensanalysis_210216_MSM-2010_2022'
+    job_tag = 'agegps_sensanalysis_210216_MSM-2010_2022',
+    undiagnosed = '/Users/alexb/Library/CloudStorage/OneDrive-ImperialCollegeLondon/Roadmap/sources/ethnicity_analysis/undiagnosed/undiagnosed_211102-cohort_2010_2015',
+    overwrite = 1
   )
 }
 
@@ -37,38 +27,23 @@ args_line <-  as.list(commandArgs(trailingOnly=TRUE))
 if(length(args_line) > 0)
 {
   stopifnot(args_line[[1]]=='-source_dir')
-  stopifnot(args_line[[3]]=='-stanModelFile')
-  stopifnot(args_line[[5]]=='-indir')
-  stopifnot(args_line[[7]]=='-outdir')
+  stopifnot(args_line[[3]]=='-indir')
+  stopifnot(args_line[[5]]=='-outdir')
+  stopifnot(args_line[[7]]=='-stanModelFile')
   stopifnot(args_line[[9]]=='-job_tag')
-  stopifnot(args_line[[11]]=='-scenario')
-  stopifnot(args_line[[13]]=='-rep')
-  stopifnot(args_line[[15]]=='-weights')
+  stopifnot(args_line[[11]]=='-analysis')
 
-  args <- list()
-  args[['source_dir']] <- args_line[[2]]
-  args[['stanModelFile']] <- args_line[[4]]
-  args[['indir']] <- args_line[[6]]
-  args[['outdir']] <- args_line[[8]]
-  args[['job_tag']] <- args_line[[10]]
-  args[['scenario']] <- as.integer(args_line[[12]])
-  args[['rep']] <- as.integer(args_line[[14]])
-  args[['weights']] <- as.integer(args_line[[16]])
+  args_dir <- list()
+  args_dir[['source_dir']] <- args_line[[2]]
+  args_dir[['indir']] <- args_line[[4]]
+  args_dir[['outdir']] <- args_line[[6]]
+  args_dir[['stanModelFile']] <- args_line[[8]]
+  args_dir[['job_tag']] <- args_line[[10]]
+  args_dir[['analysis']] <- args_line[[12]]
 }
-args
+args_dir
 
-cat(" \n --------------------------------  with arguments -------------------------------- \n")
-
-infile.seq <-	file.path(args_dir$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
-infile.bas <- file.path(args_dir$indir, 'Data', 'data_220331','SHM_2201_ROADMAP_220331_tblBAS.csv')
-infile.meta <- file.path(args_dir$indir, args_dir$analysis, 'misc', '220713_sequence_labels.rda')
-
-### merge in patient metadata ----
-load(infile.meta)
-dind <- data.table(dind)
-
-infile.seq <-	file.path(args_dir$indir, 'Data', 'data_220331/SHM_2201_ROADMAP_220331_tblLAB_seq.rda')
-load(infile.seq)
+cat(" \n --------------------------------  load data -------------------------------- \n")
 
 ## read stanin
 cat('\nReading Stan input data...')
@@ -77,19 +52,36 @@ stopifnot(length(infile.stanin)>0)
 stopifnot(length(infile.stanin)<=1)
 tmp <- load(file.path(args_dir$outdir, infile.stanin))
 stopifnot(c('args','stan_data')%in%tmp)
-args$job_tag = args_dir$job_tag
-args$undiagnosed = args_dir$undiagnosed
 
-tmp <- paste0(outfile.base,'-fitted_stan_model.rds')
-cat("\n Read fitted dat ", tmp , "\n")
-model_fit <- readRDS(file = tmp)
+outfile.base <- paste0(args_dir$outdir, "/",
+                       args_dir$stanModelFile , "-", args_dir$job_tag)
+
+
+infile.meta <- file.path(args_dir$indir, args_dir$analysis, 'misc', '220713_sequence_labels.rda')
+infile.po.tpairprob <- paste0(outfile.base,'-stanout-tpairprobw-gqs.RDS')
+infile.sampling.prob <- paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS')
+
+cat('\nReading sampling probabilities...')
+spy <- readRDS(file=infile.sampling.prob)
+cat('\nReading posterior transmission pair probabilities...')
+tprob <- readRDS(file=infile.po.tpairprob)
+#samples <- rstan::extract(fit, inc_warmup = FALSE)
+tprob <- data.table(reshape::melt(tprob$tpair_prob_w))
 
 ## load ethnicity data ----
 
+cat('\nReading patient metadata...')
+load(infile.meta)
+
+dind <- data.table(dind)
+
+do <- unique(do)
 do <- merge(do,subset(dind,select=c('PATIENT','LOC_BIRTH')),by.x='FROM_SEQUENCE_ID',by.y='PATIENT',all.x=T)
 setnames(do,'LOC_BIRTH','FROM_LOC_BIRTH')
 do <- merge(do,subset(dind,select=c('PATIENT','LOC_BIRTH')),by.x='TO_SEQUENCE_ID',by.y='PATIENT',all.x=T)
 setnames(do,'LOC_BIRTH','TO_LOC_BIRTH')
+
+do <- unique(do)
 
 do[, FROM_BPLACE:="Other"]
 do[FROM_LOC_BIRTH %in% c("WEurope","NorthAm","Oceania"), FROM_BPLACE:="W.Europe,\nN.America,Oceania"]
@@ -119,43 +111,25 @@ do[, TO_BPLACE:= factor(TO_BPLACE,
                         levels=c('Netherlands','W.Europe,\nN.America,Oceania','Suriname &\nDutch Caribbean',
                                  'S. America &\n Caribbean','E. & C. Europe','MENA','Other'))]
 
-## get flows from group a to group b out of total flows ----
-cat(" \n --------------------------------  plot flows from group a to group b out of total flows -------------------------------- \n")
+# summarise flows by two-year intervals ----
 
-spy <- readRDS(file=paste0(outfile.base,'-sampling_prob_byyear_cases','.RDS'))
-
-po <- model_fit$draws(inc_warmup = FALSE,
-                      format = 'draws_df',
-                      variables = 'tpair_prob_w' #tpair_prob_w
-)
-po <- data.table(po)
-setnames(po, colnames(po), gsub('^\\.','',colnames(po)))
-po <- melt(po, id.vars = c('chain','iteration','draw'))
-po <- data.table(po)
-po[, PAIR_ID := as.integer(gsub(paste0('tpair_prob_w\\[([0-9]+)\\]'),'\\1',as.character(variable)))]
-tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','YEAR_OF_INF_EST'))
+po <- data.table(tprob)
+setnames(po,c('iterations','Var.2'),c('draw','PAIR_ID'))
+tmp <- subset(do, select = c('PAIR_ID','FROM_BPLACE','TO_BPLACE','FROM_COUNTRY','TO_COUNTRY','FROM_SEQUENCE_ID','TO_SEQUENCE_ID','FROM_MIGRANT','TO_MIGRANT','YEAR_OF_INF_EST'))
 po <- merge(po, tmp, by = 'PAIR_ID')
 po <- merge(po, subset(spy,select=c('LOC_BIRTH_POS','YEAR_OF_INF_EST','psi')),
             by.x=c('TO_BPLACE','YEAR_OF_INF_EST'),by.y=c('LOC_BIRTH_POS','YEAR_OF_INF_EST'))
-po <- po[, list(value = sum(value/psi)), by = c('draw','FROM_BPLACE','TO_BPLACE')]
-tmp <- po[, list(total = sum(value)), by = c('draw')]
-po <- merge(po, tmp, by = c('draw'))
+po[, YEAR_GP:= cut(YEAR_OF_INF_EST, breaks=c(2010,2012,2014,2016,2018,2020,2022),
+                   labels=c('2010-2011','2012-2013','2014-2015','2016-2017','2018-2019','2020-2021'),include.lowest=T,right=F)]
+# print sample sizes
+cat('\nNumber of incident cases per 2-year interval:\n')
+po[, list(N_cases=length(unique(TO_SEQUENCE_ID))),by='YEAR_GP']
+cat('\nNumber of pairs per 2-year interval:\n')
+po[, list(N_pairs=length(unique(PAIR_ID))),by='YEAR_GP']
+
+po <- po[, list(value = sum(value/psi)), by = c('draw','FROM_MIGRANT','YEAR_GP')]
+tmp <- po[, list(total = sum(value)), by = c('draw','YEAR_GP')]
+po <- merge(po, tmp, by = c('draw','YEAR_GP'))
 po[, paf := value/total]
 
-
-## calculate assort coeff ----
-tmp <- po[, list(diag=sum(paf[FROM_BPLACE==TO_BPLACE]),
-                 flowsq=sum(paf^2)),by='draw']
-po <- merge(po,tmp,by='draw')
-
-po <- tmp[, list(ac=(diag - flowsq) / (1-flowsq)),
-         by=c('draw')]
-
-po <- po[,
-         list( q = quantile(ac, probs = c(0.5, 0.025, 0.25, 0.75, 0.975) ),
-               stat = c('M','CL','IL', 'IU', 'CU')
-         )]
-po <- dcast.data.table(po, . ~stat, value.var = 'q')
-po[, L:= paste0(round(M,2),' [',round(CL,2),'-',round(CU,2),']')]
-
-saveRDS(po,file=paste0(outfile.base,'-assortativity_coeff','.RDS'))
+saveRDS(po,file=paste0(outfile.base,'-adjusted_flows_mwmb_by2years_samplingofcases_mcsamples','.RDS'))

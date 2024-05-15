@@ -16,10 +16,11 @@ functions{
   }
 
   // Transform restructured matrix back to a squared matrix
-  matrix inverse_restruct(matrix B, array[] int nn_idx)
-  {
-    return to_matrix(to_vector(B)[nn_idx], cols(B), cols(B), 0);
-  }
+//  matrix inverse_restruct(matrix B, array[] int nn_idx)
+//  matrix inverse_restruct(matrix B, int[] nn_idx)
+//  {
+//    return to_matrix(to_vector(B)[nn_idx], cols(B), cols(B), 0);
+//  }
 
 matrix hsgp(int A, real alpha, real rho1, real rho2, real L1, real L2, int M1, int M2,
             matrix PHI1, matrix PHI2, matrix z)
@@ -47,7 +48,7 @@ data{
 
   int<lower=1> D; //Number of Dimensions
   vector[D] L; //Boundaries for each dimension
-  int M[D]; //Number of basis functions in each dimension
+  array[D] int M; //Number of basis functions in each dimension
   int<lower=1> M_nD; //M1*M2
 
   matrix[M_nD, D] indices; //Matrix of D-tuples
@@ -62,12 +63,12 @@ data{
 
   //Indexing
   int<lower=0> Nk_max; //Max obs per age
-  int<lower=0,upper=N> coordinates[N, D]; // indexing for ages of sources and recipients
+  array[N, D] int<lower=0,upper=N> coordinates;
   int<lower=0> Nj_max; //Max obs per recip 1yr age
   int<lower=0> Nj_max_coarse; //Max obs per recip age band
-  int<lower=0> age_recip_coarse[Nj_max_coarse, A, A];
-  int<lower=1> pt_idx[N]; // unique recipient ID for pair ij
-  int pt_map[P,N]; // idx of ID for pair ij
+  array[Nj_max_coarse, A, A] int<lower=0> age_recip_coarse;
+  array[N] int<lower=1> pt_idx; // unique recipient ID for pair ij
+  array[P,N] int pt_map; // idx of ID for pair ij
   matrix[S,N] idx_src; // idx of source categories
   matrix[S,N] idx_rec; // idx of recipient categories
 

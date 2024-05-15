@@ -51,9 +51,9 @@ data{
   array[D] int M; //Number of basis functions in each dimension
   int<lower=1> M_nD; //M1*M2
 
-  matrix[M_nD, D] indices; //Matrix of D-tuples
-  int<lower=0> A; // number of age groups
   int<lower=0> n; // number of 1yr ages
+
+  matrix[n, D] ages; //Age matrix
 
   // parameters from clock model
   real log_alpha1;
@@ -62,22 +62,9 @@ data{
   real log_phi_pair_sd;
 
   //Indexing
-  int<lower=0> Nk_max; //Max obs per age
   array[N, D] int<lower=0,upper=N> coordinates;
-  int<lower=0> Nj_max; //Max obs per recip 1yr age
-  int<lower=0> Nj_max_coarse; //Max obs per recip age band
-  array[Nj_max_coarse, A, A] int<lower=0> age_recip_coarse;
   array[N] int<lower=1> pt_idx; // unique recipient ID for pair ij
   array[P,N] int pt_map; // idx of ID for pair ij
-  matrix[S,N] idx_src; // idx of source categories
-  matrix[S,N] idx_rec; // idx of recipient categories
-
-
-  int<lower=1> Nu_pairs; //number of unique observed time elapsed
-  array[N] int<lower=1, upper=Nu_pairs> IDX_UNIQUE_PAIR; // index of unique values
-  matrix[n, D] ages; //Age matrix (Source-Recip Columns)
-  real<lower=0> sd1;
-  real<lower=0> sd2;
 }
 
 transformed data{
@@ -139,24 +126,15 @@ model{
 }
 
 generated quantities{
-  vector[N] d_pred;
   int npairs;
   int k;
   real num;     // create vector of appropriate size for all npairs
   vector[2] den_one;
   vector<lower=0,upper=1>[N] tpair_prob;
   vector<lower=0,upper=1>[N] tpair_prob_w;
-  row_vector<lower=0,upper=1>[N] idx;
-  matrix<lower=0>[S,S] flows; //rows=sources
-  matrix<lower=0>[S,S] pflows; // prop. total flows between groups
-  matrix<lower=0>[S,S] pflows_to; // prop. flows within recipients B from each source
-  vector<lower=0>[S] pflows_from; // prop. flows from sources A
 
   for (i in 1:N)
   {
-
-    // generate distances using parameters for posterior predictive check
-    d_pred[i] = log_sum_exp(log(y_mix[i]) + gamma_rng(tpair_alpha[i], tpair_beta[i]), log1m(y_mix[i]) + uniform_rng(0,max(y)));
 
     npairs = sum(pt_map[pt_idx[i],]); //count number of pairs for recipient in pair i
 
@@ -217,20 +195,5 @@ generated quantities{
           )
         );
 
-  }
-  for(a in 1:S){
-    for(b in 1:S){
-        idx = (idx_src[a,] .* idx_rec[b,]);
-        flows[a,b] = idx * tpair_prob_w;
-      }
-  }
-    pflows = flows/sum(flows[:,:]);
-  for(a in 1:S){
-    for(b in 1:S){
-        pflows_to[a,b] = flows[a,b]/sum(flows[:,b]);
-    }
-  }
-  for(a in 1:S){
-    pflows_from[a] = sum(flows[a,:])/sum(flows);
   }
 }

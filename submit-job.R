@@ -36,9 +36,9 @@ if(1)
     source_dir = '~/git/transmission.flows.by.birthplace',
     in_dir='/rds/general/project/ratmann_roadmap_data_analysis/live',
     out_dir= '/rds/general/project/ratmann_roadmap_data_analysis/live/transmission_sources',
-    script_make_pairs= 'scripts/formulate-Amsterdam-pairs.R',
-    script_file= 'scripts/run-stan.R',
-    script_converting_file = "scripts/stan-convert-csv-to-rda.r",
+    script_make_pairs= 'full_analysis_with_uncertainty/scripts/formulate-Amsterdam-pairs.R',
+    script_file= 'full_analysis_with_uncertainty/scripts/run-stan.R',
+    script_converting_file = "full_analysis_with_uncertainty/scripts/stan-convert-csv-to-rda.r",
     #stanModelFile = 'mm_sigHierG_bgUnif_piVanilla_220408b', # vanilla model
     #stanModelFile = 'mm_sigHierG_bgUnif_piReg_230111b', # covariate model
     stanModelFile = 'mm_bgUnif_piGP_221027b_hpc', # 2D HSGP model
@@ -145,7 +145,7 @@ for(i in seq_len(nrow(args)))
     #	clean up any existing model code
     cmd <- paste0(cmd, 'rm ', file.path('$CWD',paste0(args$stanModelFile[i],'.*')), ' \n')
     #	copy stan model file
-    cmd	<- paste0(cmd, 'cp -R ',file.path(args$source_dir[i], 'stan_model_files',paste0(args$stanModelFile[i],'.stan')),' .\n')
+    cmd	<- paste0(cmd, 'cp -R ',file.path(args$source_dir[i], 'full_analysis_with_uncertainty/stan_model_files',paste0(args$stanModelFile[i],'.stan')),' .\n')
     #	build model
     cmd <- paste0(cmd, 'cd ', args$cmdstan_dir[i], '\n')
     cmd <- paste0(cmd, 'make STAN_THREADS=TRUE ', file.path('$CWD',args$stanModelFile[i]), ' \n')
@@ -232,19 +232,19 @@ for(i in seq_len(nrow(args)))
                    'OVERWRITE=0\n'
     )
     # save posterior samples
-    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','post-processing-save-posterior-samples.R'),
+    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','full_analysis_with_uncertainty/scripts','post-processing-save-posterior-samples.R'),
                   ' -source_dir $SCRIPT_DIR -stanModelFile $STAN_MODEL_FILE -outdir $OUT_DIR -job_tag $JOB_TAG -numb_chains $CHAINS -trsm $TRSM')
     cmd2 <- paste0(cmd2,tmp,'\n')
-    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','post-processing-assess-mixing.R'),
+    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','full_analysis_with_uncertainty/scripts','post-processing-assess-mixing.R'),
                   ' -source_dir $SCRIPT_DIR -stanModelFile $STAN_MODEL_FILE -outdir $OUT_DIR -job_tag $JOB_TAG -local $LOCAL')
     cmd2 <- paste0(cmd2,tmp,'\n')
-    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','post-processing-sampling-prob-incident-cases.R'),
+    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','full_analysis_with_uncertainty/scripts','post-processing-sampling-prob-incident-cases.R'),
                   ' -source_dir $SCRIPT_DIR -stanModelFile $STAN_MODEL_FILE -indir $IN_DIR -outdir $OUT_DIR -job_tag $JOB_TAG -undiagnosed $UNDIAGNOSED -job_tag_undiag $JOB_TAG_UNDIAGNOSED -analysis $ANALYSIS')
     cmd2 <- paste0(cmd2,tmp,'\n')
-    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','post-processing-posterior-sources.R'),
+    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','full_analysis_with_uncertainty/scripts','post-processing-posterior-sources.R'),
                   ' -source_dir $SCRIPT_DIR -indir $IN_DIR -outdir $OUT_DIR -stanModelFile $STAN_MODEL_FILE -job_tag $JOB_TAG -analysis $ANALYSIS')
     cmd2 <- paste0(cmd2,tmp,'\n')
-    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','scripts','post-processing-time-shifting-sources.R'),
+    tmp <- paste0('Rscript ', file.path('$SCRIPT_DIR','full_analysis_with_uncertainty/scripts','post-processing-time-shifting-sources.R'),
                   ' -source_dir $SCRIPT_DIR -indir $IN_DIR -outdir $OUT_DIR -stanModelFile $STAN_MODEL_FILE -job_tag $JOB_TAG -analysis $ANALYSIS')
     cmd2 <- paste0(cmd2,tmp,'\n')
     # write submission file
